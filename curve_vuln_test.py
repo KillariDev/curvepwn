@@ -108,22 +108,19 @@ if False:
 funds_avail = int(100000000*10**18)
 
 seed(datetime.now())
-best_val = 1e19
-best_i = 0
+best_val = 1e100
+best_i = 0;
 while True:
     #try to guess a solution
     coins = [randint(0, current_values[0]+funds_avail), 
              randint(0, current_values[1]+funds_avail), 
              randint(0, current_values[2]+funds_avail)]
-    value = get_I(coins,amp)
-    if(value > best_i):
-        print(value)
-        best_i = value
-    if(value > 255):
-        D = get_D(coins, amp)
+    #value = get_I(coins,amp)
+    D = get_D(coins, amp)
+    u = USDTpool(coins, amp, D)
+    if abs(u)>0:
         print(coins)
         print(D)
-        u = USDTpool(coins, amp, D)
         print(u)
         if abs(u)>0:
             diff = 0
