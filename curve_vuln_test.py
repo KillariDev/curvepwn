@@ -78,10 +78,13 @@ def get_I(xp, amp):
     # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
     return 1000
 
+
+#Expression of the invariant of the USDT pool in the contract code
 def USDTpool(xp, amp, D):
     '''
     Return f(D)
     '''
+    #amp is already A*n**(n-1)
     Ann = amp*N_COINS
     S = 0
     for _x in xp:
@@ -96,7 +99,7 @@ def USDTpool(xp, amp, D):
 amp = 2000
 current_values = [int(351794.69*10**18),int(689185.73*10**18),int(382505.53*10**18)]
 
-#test that we get 0
+#Test that we get 0 for the current values in the pool
 if False:
     D = get_D(current_values, amp)
     print(USDTpool(current_values, amp, D))
