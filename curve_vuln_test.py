@@ -90,21 +90,40 @@ def USDTpool(xp, amp, D):
     return Ann*S + (1-Ann)*D - (D**(N_COINS+1))/((N_COINS**N_COINS)*P)
 
 amp = 2000
-coins = [int(351794.69*1e18),int(689185.73*1e18),int(382505.53*1e18)]
-D = get_D(coins, amp)
-print(coins)
-print(D)
-print(USDTpool(coins, amp, D))
+current_values = [int(351794.69*10**18),int(689185.73*10**18),int(382505.53*10**18)]
 
-if True:
-    seed(1)
-    best_val = 0
-    while True:
-        coins = [randint(0, 2**53-1),randint(0, 2**53-1),randint(0, 2**53-1)]
-        value = get_I(coins,amp)
-        if(value > best_val):
-            best_val = value
-            print(best_val)
-        if(value > 255):
-            D = get_D(coins, amp)
-            print(coins, "diff:", USDTpool(coins, amp, D))
+#test that we get 0
+if False:
+    D = get_D(current_values, amp)
+    print(USDTpool(current_values, amp, D))
+
+#funds we have a available to try to modify the amounts
+funds_avail = int(100000000*10**18)
+
+seed(1)
+best_val = 1e19
+best_i = 0;
+while True:
+    #try to guess a solution
+    coins = [randint(0, current_values[0]+funds_avail), 
+             randint(0, current_values[1]+funds_avail), 
+             randint(0, current_values[2]+funds_avail)]
+    value = get_I(coins,amp)
+    if(value > best_i):
+        print(value)
+        best_i = value
+    if(value > 255):
+        D = get_D(coins, amp)
+        if abs(USDTpool(coins, amp, D))>0:
+            diff = 0;
+            for i in range(0,3):
+                diff+=abs(coins[i]-current_values[i])
+            if(diff<best_val):
+                best_val = diff
+                print('Solution found!')
+                print(coins)
+                print('USDTpool:', USDTpool(coins, amp, D))
+                print("Funds required:", best_val)
+                print('Mod', str((coins[0]-current_values[0])//1e18), 'DAI' )
+                print('Mod:', str(( coins[1]-current_values[1])//1e18), 'USDC' )
+                print('Mod:', str(( coins[2]-current_values[2])//1e18), 'USDT' )

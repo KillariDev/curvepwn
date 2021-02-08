@@ -1,0 +1,18 @@
+{
+  "name": "curve-vuln",
+  "version": "0.0.1",
+  "description": "",
+  "engines": {
+    "node": "12.x",
+    "npm": "6.x"
+  },
+  "scripts": {
+    "start": "node curve_get_d.vy_tester.js ",
+    "dev-chain": "ganache-cli --port 7546 -i 4447"
+  },
+  "author": "Killari",
+  "license": "MIT",
+  "dependencies": {
+    "ethers": "^5.0.25"
+  }
+}
