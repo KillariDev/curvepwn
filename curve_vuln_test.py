@@ -2,6 +2,8 @@
 
 from random import seed
 from random import randint
+from datetime import datetime
+
 N_COINS = 3
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
@@ -100,7 +102,7 @@ if False:
 #funds we have a available to try to modify the amounts
 funds_avail = int(100000000*10**18)
 
-seed(1)
+seed(datetime.now())
 best_val = 1e19
 best_i = 0;
 while True:
@@ -114,6 +116,9 @@ while True:
         best_i = value
     if(value > 255):
         D = get_D(coins, amp)
+        print(coins)
+        print(D)
+        print(USDTpool(coins, amp, D))
         if abs(USDTpool(coins, amp, D))>0:
             diff = 0;
             for i in range(0,3):
