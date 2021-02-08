@@ -109,7 +109,7 @@ funds_avail = int(100000000*10**18)
 
 seed(datetime.now())
 best_val = 1e100
-best_i = 0;
+best_i = 0
 while True:
     #try to guess a solution
     coins = [randint(0, current_values[0]+funds_avail), 
