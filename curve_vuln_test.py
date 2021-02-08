@@ -4,6 +4,8 @@ from random import seed
 from random import randint
 from datetime import datetime
 
+import price_calcs
+
 N_COINS = 3
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
@@ -104,7 +106,7 @@ funds_avail = int(100000000*10**18)
 
 seed(datetime.now())
 best_val = 1e19
-best_i = 0;
+best_i = 0
 while True:
     #try to guess a solution
     coins = [randint(0, current_values[0]+funds_avail), 
@@ -121,7 +123,7 @@ while True:
         u = USDTpool(coins, amp, D)
         print(u)
         if abs(u)>0:
-            diff = 0;
+            diff = 0
             for i in range(0,3):
                 diff += abs(coins[i]-current_values[i])
             if(diff<best_val):
