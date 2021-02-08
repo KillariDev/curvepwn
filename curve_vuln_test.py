@@ -118,17 +118,18 @@ while True:
         D = get_D(coins, amp)
         print(coins)
         print(D)
-        print(USDTpool(coins, amp, D))
-        if abs(USDTpool(coins, amp, D))>0:
+        u = USDTpool(coins, amp, D)
+        print(u)
+        if abs(u)>0:
             diff = 0;
             for i in range(0,3):
-                diff+=abs(coins[i]-current_values[i])
+                diff += abs(coins[i]-current_values[i])
             if(diff<best_val):
                 best_val = diff
                 print('Solution found!')
                 print(coins)
-                print('USDTpool:', USDTpool(coins, amp, D))
-                print("Funds required:", best_val)
-                print('Mod', str((coins[0]-current_values[0])//1e18), 'DAI' )
-                print('Mod:', str(( coins[1]-current_values[1])//1e18), 'USDC' )
-                print('Mod:', str(( coins[2]-current_values[2])//1e18), 'USDT' )
+                print('USDTpool: ', USDTpool(coins, amp, D))
+                print('Funds required: ', str(best_val/1e18) )
+                print('Mod: ', str((coins[0]-current_values[0])/1e18), 'DAI' )
+                print('Mod: ', str(( coins[1]-current_values[1])/1e18), 'USDC' )
+                print('Mod: ', str(( coins[2]-current_values[2])/1e18), 'USDT' )
