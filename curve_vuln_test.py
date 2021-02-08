@@ -4,6 +4,8 @@ from random import seed
 from random import randint
 from datetime import datetime
 
+import price_calcs
+
 N_COINS = 3
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
@@ -117,16 +119,16 @@ while True:
         print(coins)
         print(D)
         print(u)
-        diff = 0;
-        for i in range(0,3):
-            diff += abs(coins[i]-current_values[i])
-        if(diff<best_val):
-            best_val = diff
-            print('Solution found!')
-            print(coins)
-            print('USDTpool:', USDTpool(coins, amp, D))
-            print('Funds required:', str(best_val/1e18), 'USD' )
-            print('Mod:', str((coins[0]-current_values[0])/1e18), 'DAI' )
-            print('Mod:', str(( coins[1]-current_values[1])/1e18), 'USDC' )
-            print('Mod:', str(( coins[2]-current_values[2])/1e18), 'USDT' )
-            print('Iterations:', get_I(coins,amp))
+        if abs(u)>0:
+            diff = 0
+            for i in range(0,3):
+                diff += abs(coins[i]-current_values[i])
+            if(diff<best_val):
+                best_val = diff
+                print('Solution found!')
+                print(coins)
+                print('USDTpool: ', USDTpool(coins, amp, D))
+                print('Funds required: ', str(best_val/1e18) )
+                print('Mod: ', str((coins[0]-current_values[0])/1e18), 'DAI' )
+                print('Mod: ', str(( coins[1]-current_values[1])/1e18), 'USDC' )
+                print('Mod: ', str(( coins[2]-current_values[2])/1e18), 'USDT' )
