@@ -2,3 +2,4 @@
 /exploit/artifacts/
 /exploit/cache
 /exploit/node_modules/
+__pycache__
