@@ -52,6 +52,7 @@ def get_D(xp, amp):
     # convergence typically occurs in 4 rounds or less, this should be unreachable!
     # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
     return D
+
 def get_I(xp, amp):
     S = 0
 
@@ -80,6 +81,77 @@ def get_I(xp, amp):
     # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
     return 1000
 
+def _xp(current_balances, rates):
+    '''
+    Necessary for the function get_dy below, seems to convert the balances into underlying (or wrapped?) tokens
+    '''
+    result = rates
+    for i in range(N_COINS):
+        result[i] = result[i] * current_balances[i] / PRECISION
+    return result
+
+def get_y(i, j, x, _xp, amp):
+    '''
+    i = position of the token that we put in 
+    j = position of the token that we want to get out 
+    x = new balance after adding the amount of tokens we put in 
+    xp = current balances of the pool
+    amp = scaled amplification factor (A*n**(n-1))
+    '''
+    # x in the input is converted to the same price/precision
+
+    assert (i != j) and (i >= 0) and (j >= 0) and (i < N_COINS) and (j < N_COINS)
+
+    D = get_D(_xp, amp)
+    c = D
+    S_ = 0
+    Ann = amp * N_COINS
+
+    _x = 0
+    for _i in range(N_COINS):
+        if _i == i:
+            _x = x
+        elif _i != j:
+            _x = _xp[_i]
+        else:
+            continue
+        S_ += _x
+        c = c * D // (_x * N_COINS)
+    c = c * D // (Ann * N_COINS)
+    b = S_ + D // Ann  # - D
+    y_prev = 0
+    y = D
+    for _i in range(255):
+        y_prev = y
+        y = (y*y + c) // (2 * y + b - D)
+        # Equality with the precision of 1
+        if y > y_prev:
+            if y - y_prev <= 1:
+                break
+        else:
+            if y_prev - y <= 1:
+                break
+    return y
+
+def get_dy(i, j, xp, dx, amp, rates, fee):
+    '''
+    Slightly modified from the contracts, get the amount out from the amount given in. Removed precision stuff for now. See line 370. https://github.com/curvefi/curve-contract/blob/master/contracts/pools/usdt/StableSwapUSDT.vy
+
+    i = position of the token that we put in 
+    j = position of the token that we want to get out 
+    x = new balance after adding the amount of tokens we put in 
+    xp = current balances of the pool
+    amp = scaled amplification factor (A*n**(n-1))
+    '''
+    # dx and dy in c-units
+    #rates: uint256[N_COINS] = self._stored_rates()
+    xp = _xp(xp, rates)
+
+    x = xp[i] + dx * rates[i] // PRECISION
+    y = get_y(i, j, x, xp, amp)
+    dy = (xp[j] - y) * PRECISION // rates[j]
+    _fee = fee * dy // FEE_DENOMINATOR
+    return dy - _fee
 
 #Expression of the invariant of the USDT pool in the contract code
 def USDTpool(xp, amp, D):
@@ -222,3 +294,36 @@ if False:
         slippage = price_calcs.getSlippage(invariant, attack_balance, 1000000*1e18, [2,1])
     print("Max spot price deviation: ", 100*max_spot_deviation)
     print("Corresponding slippage: ", slippage)
+
+
+    #Try to find an to put in the pool that would break the peg 
+    while True: 
+        #Current values in CDAI, CUSDC, USDT
+        dai = int(315765.99*1e18)
+        usdc = int(680431.41*1e18)
+        usdt = int(427674.23*1e18)
+        current_values = [dai, usdc, usdt]
+        D = get_D(current_values, amp)
+        invariant = lambda x : USDTpool(x, amp, D)
+        #To change with real values
+        rates = 0
+        fee = 0
+        #Check that we get 0
+        if (invariant(current_values) != 0):
+            print("D calculation failed!")
+            break
+        #Choose a random amount in to add between 1% and 10% of the pool holdings
+
+        #DAI test
+        amount_in = randint(dai//100, dai//10)
+        amount_usdc_out = get_dy(0, 1, current_values, amount_in, amp, rates, fee)
+        amount_usdt_out = get_dy(0,2, current_values, amount_in, amp, rates, fee)
+        #If we find something that gives us an effective price of more than 1.05, print it
+        if amount_usdc_out > 1.05*amount_in:
+            print("Solution found, swap DAI for USDC")
+            print("Amount to swap: ", amount_in)
+        if amount_usdt_out > 1.05*amount_in:
+            print("Solution found, swap DAI for USDT ")
+            print("Amount to swap: ", amount_in)
+
+        #Adapt for USDC and USDT
