@@ -6,6 +6,8 @@ from datetime import datetime
 
 import price_calcs
 
+import numpy as np
+
 N_COINS = 3
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
@@ -201,4 +203,22 @@ if False:
         slippage_solutions.append(slippage_list)
     print("Max slippage: ", max(sublist[-1] for sublist in slippage_solutions), "%")
 
-
+#Verify how profitable a potential attack might be by comparing the new spot price with the slippage for a large order
+if False:
+    attack_balance = [2294228968411794745296753, 42782828621711901587047913, 7101142569280429938356188]
+    D = get_D(attack_balance, amp)
+    invariant = lambda x : USDTpool(x, amp, D)
+    spot0 = price_calcs.getSpotPrice(invariant, attack_balance, [0,1])
+    spot1 = price_calcs.getSpotPrice(invariant, attack_balance, [0,2])
+    spot2 = price_calcs.getSpotPrice(invariant, attack_balance, [2,1])
+    spot_prices_list = [spot0, spot1, spot2]
+    max_spot_deviation = max([abs(x - 1) for x in spot_prices_list])
+    index = np.argmax(np.array([abs(x - 1) for x in spot_prices_list]))
+    if index == 0:
+        slippage = price_calcs.getSlippage(invariant, attack_balance, 1000000*1e18, [0,1])
+    elif index == 1: 
+        slippage = price_calcs.getSlippage(invariant, attack_balance, 1000000*1e18, [0,2])
+    elif index == 2: 
+        slippage = price_calcs.getSlippage(invariant, attack_balance, 1000000*1e18, [2,1])
+    print("Max spot price deviation: ", 100*max_spot_deviation)
+    print("Corresponding slippage: ", slippage)
