@@ -1,1 +1,4 @@
 /node_modules/
+/exploit/artifacts/
+/exploit/cache
+/exploit/node_modules/
