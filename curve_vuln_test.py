@@ -169,34 +169,34 @@ if False:
     print("Corresponding slippage: ", slippage)
 
 
-    #Try to find an to put in the pool that would break the peg 
-    while True: 
-        #Current values in CDAI, CUSDC, USDT
-        dai = 1499652125335257
-        usdc = 3153232734120070
-        usdt = 427674227529
-        current_values = [dai, usdc, usdt]
-        D = solver.get_D(current_values, amp)
-        invariant = lambda x : USDTpool(x, amp, D)
-        #To change with real values
-        rates = 0
-        fee = 0
-        #Check that we get 0
-        if (invariant(current_values) != 0):
-            print("D calculation failed!")
-            break
-        #Choose a random amount in to add between 1% and 10% of the pool holdings
+#Try to find an to put in the pool that would break the peg 
 
-        #DAI test
-        amount_in = randint(dai//100, dai//10)
-        amount_usdc_out = solver.get_dy(0, 1, current_values, amount_in, amp, rates, fee)
-        amount_usdt_out = solver.get_dy(0,2, current_values, amount_in, amp, rates, fee)
-        #If we find something that gives us an effective price of more than 1.05, print it
-        if amount_usdc_out > 1.05*amount_in:
-            print("Solution found, swap DAI for USDC")
-            print("Amount to swap: ", amount_in)
-        if amount_usdt_out > 1.05*amount_in:
-            print("Solution found, swap DAI for USDT ")
-            print("Amount to swap: ", amount_in)
+rates = [210570756987449009169586140, 215800661448826000000000000, 1000000000000000000000000000000]
+fee = 0
 
-        #Adapt for USDC and USDT
+while True: 
+    #Current values in CDAI, CUSDC, USDT
+    dai = 1499652125335257
+    usdc = 3153232734120070
+    usdt = 427674227529
+    current_values = [dai, usdc, usdt]
+    D = solver.get_D(current_values, amp)
+    invariant = lambda x : USDTpool(x, amp, D)
+    #Check that we get 0
+    if (invariant(current_values) != 0):
+        print("D calculation failed!")
+        break
+    #Choose a random amount in to add between 1% and 10% of the pool holdings
+    #DAI test
+    amount_in = randint(dai//100, dai//10)
+    amount_usdc_out = solver.get_dy(0, 1, current_values, amount_in, amp, rates, fee)
+    amount_usdt_out = solver.get_dy(0,2, current_values, amount_in, amp, rates, fee)
+    #If we find something that gives us an effective price of more than 1.05, print it
+    if amount_usdc_out > 1.05*amount_in:
+        print("Solution found, swap DAI for USDC")
+        print("Amount to swap: ", amount_in)
+    if amount_usdt_out > 1.05*amount_in:
+        print("Solution found, swap DAI for USDT ")
+        print("Amount to swap: ", amount_in)
+
+    #Adapt for USDC and USDT
