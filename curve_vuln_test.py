@@ -277,7 +277,7 @@ if False:
 
 #Verify how profitable a potential attack might be by comparing the new spot price with the slippage for a large order
 if False:
-    attack_balance = [2294228968411794745296753, 42782828621711901587047913, 7101142569280429938356188]
+    attack_balance = [1499652125335257,3153232734120070,427674227529]#cdai, cusdc,usdt
     D = get_D(attack_balance, amp)
     invariant = lambda x : USDTpool(x, amp, D)
     spot0 = price_calcs.getSpotPrice(invariant, attack_balance, [0,1])
@@ -299,9 +299,9 @@ if False:
     #Try to find an to put in the pool that would break the peg 
     while True: 
         #Current values in CDAI, CUSDC, USDT
-        dai = int(315765.99*1e18)
-        usdc = int(680431.41*1e18)
-        usdt = int(427674.23*1e18)
+        dai = 1499652125335257
+        usdc = 3153232734120070
+        usdt = 427674227529
         current_values = [dai, usdc, usdt]
         D = get_D(current_values, amp)
         invariant = lambda x : USDTpool(x, amp, D)
