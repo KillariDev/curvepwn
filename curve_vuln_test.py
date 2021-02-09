@@ -22,6 +22,7 @@ MAX_FEE = 5 * 10 ** 9
 MAX_A = 10 ** 6
 MAX_A_CHANGE = 10
 A_PRECISION = 100
+amp = 2000
 
 ADMIN_ACTIONS_DELAY = 3 * 86400
 MIN_RAMP_TIME = 86400
@@ -43,7 +44,6 @@ def USDTpool(xp, amp, D):
         P*= _x
     return Ann*S + (1-Ann)*D - (D**(N_COINS+1))/((N_COINS**N_COINS)*P)
 
-amp = 2000
 current_values = [int(351794.69*10**18),int(689185.73*10**18),int(382505.53*10**18)]
 
 #Test that we get 0 for the current values in the pool
@@ -169,34 +169,66 @@ if False:
     print("Corresponding slippage: ", slippage)
 
 
-#Try to find an to put in the pool that would break the peg 
+#Try to find an amount to swap that would break the peg 
 
+#Read by the attack contract from Compound
 rates = [210570756987449009169586140, 215800661448826000000000000, 1000000000000000000000000000000]
-fee = 0
+#Read from Etherscan for the USDT pool
+fee = 4000000
+
+iteration = 0
 
 while True: 
-    #Current values in CDAI, CUSDC, USDT
-    dai = 1499652125335257
-    usdc = 3153232734120070
+    #Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
+    cdai = 1499652125335257
+    cusdc = 3153232734120070
     usdt = 427674227529
-    current_values = [dai, usdc, usdt]
-    D = solver.get_D(current_values, amp)
-    invariant = lambda x : USDTpool(x, amp, D)
-    #Check that we get 0
-    if (invariant(current_values) != 0):
-        print("D calculation failed!")
-        break
-    #Choose a random amount in to add between 1% and 10% of the pool holdings
-    #DAI test
-    amount_in = randint(dai//100, dai//10)
-    amount_usdc_out = solver.get_dy(0, 1, current_values, amount_in, amp, rates, fee)
-    amount_usdt_out = solver.get_dy(0,2, current_values, amount_in, amp, rates, fee)
-    #If we find something that gives us an effective price of more than 1.05, print it
-    if amount_usdc_out > 1.05*amount_in:
-        print("Solution found, swap DAI for USDC")
-        print("Amount to swap: ", amount_in)
-    if amount_usdt_out > 1.05*amount_in:
-        print("Solution found, swap DAI for USDT ")
-        print("Amount to swap: ", amount_in)
+    dai = cdai * rates[0] // PRECISION
+    usdc = cusdc * rates[1] // PRECISION
+    #In the USDT pool, the respective positions of the tokens are DAI, USDC, USDT
+    current_values = [cdai, cusdc, usdt]
+    current_values_underlying = [dai, usdc, usdt]
+    ###################################################################################
+    #######                             TO FIX                                  ####### 
+    ###################################################################################
+    # D calculation doesn't work with the numbers given by reading the contract 
+    # on Etherscan, but works with the numbers below:
+    # current_values_underlying = [int(351794.69*10**18),int(689185.73*10**18),int(382505.53*10**18)]
+    ###################################################################################
 
-    #Adapt for USDC and USDT
+    #Get D for the current pool composition NEEDS TO BE CONVERTED IN UNDERLYING FIRST
+    D = solver.get_D(current_values_underlying, amp)
+    #Check that we get 0
+    invariant = lambda x : USDTpool(x, amp, D)
+    if (invariant(current_values_underlying) != 0):
+        print("D calculation failed!", invariant(current_values_underlying))
+        break
+
+    #DAI test
+    print("Iteration ", iteration)
+    iteration+=1
+    #Choose a random amount of cDAI to swap between 1% and 10% of the pool holdings 
+    amount_dai_in_ctoken = randint(cdai//100, cdai//10)
+    #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
+    amount_dai_in_underlying = amount_dai_in_ctoken*rates[0] // PRECISION
+    #Check the amount of cUSDC calculated out for that amount in
+    amount_usdc_out_ctokens = solver._exchange(0, 1, current_values, amount_dai_in_ctoken, rates, fee)
+
+    ###################################################################################
+    #######                             TO FIX                                  ####### 
+    ###################################################################################
+    # Even if the D calculation works, the iterations fail at the 5th step because of 
+    # ZeroDivisionError: integer division or modulo by zero. Why? Need to investigate.
+    ###################################################################################
+
+
+    #Convert to the corresponding amount of USDC
+    amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
+    #If we find something that gives us an effective price of more than 1.05, print it 
+    if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
+        print("Solution found, swap DAI for USDC")
+        print("Amount to swap: ", amount_dai_in_underlying)
+        print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
+        print("...")
+
+    #To adapt for USDC and USDT
