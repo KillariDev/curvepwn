@@ -8,6 +8,8 @@ import price_calcs
 
 import numpy as np
 
+import solver
+
 N_COINS = 3
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
@@ -23,135 +25,6 @@ A_PRECISION = 100
 
 ADMIN_ACTIONS_DELAY = 3 * 86400
 MIN_RAMP_TIME = 86400
-
-
-def get_D(xp, amp):
-    S = 0
-
-    for _x in xp:
-        S += _x
-    if S == 0:
-        return 0
-
-    Dprev = 0
-    D = S
-    Ann = amp * N_COINS
-    for _i in range(255):
-        D_P = D
-        for _x in xp:
-            D_P = D_P * D // (_x * N_COINS + 1)  # +1 is to prevent /0
-        Dprev = D
-        D = (Ann * S + D_P * N_COINS) * D // ((Ann - 1) * D + (N_COINS + 1) * D_P)
-        # Equality with the precision of 1
-        if D > Dprev:
-            if D - Dprev <= 1:
-                return D
-        else:
-            if Dprev - D <= 1:
-                return D
-    # convergence typically occurs in 4 rounds or less, this should be unreachable!
-    # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
-    return D
-
-def get_I(xp, amp):
-    S = 0
-
-    for _x in xp:
-        S += _x
-    if S == 0:
-        return 0
-
-    Dprev = 0
-    D = S
-    Ann = amp * N_COINS
-    for _i in range(255):
-        D_P = D
-        for _x in xp:
-            D_P = D_P * D // (_x * N_COINS + 1)  # +1 is to prevent /0
-        Dprev = D
-        D = (Ann * S + D_P * N_COINS) * D // ((Ann - 1) * D + (N_COINS + 1) * D_P)
-        # Equality with the precision of 1
-        if D > Dprev:
-            if D - Dprev <= 1:
-                return _i
-        else:
-            if Dprev - D <= 1:
-                return _i
-    # convergence typically occurs in 4 rounds or less, this should be unreachable!
-    # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
-    return 1000
-
-def _xp(current_balances, rates):
-    '''
-    Necessary for the function get_dy below, seems to convert the balances into underlying (or wrapped?) tokens
-    '''
-    result = rates
-    for i in range(N_COINS):
-        result[i] = result[i] * current_balances[i] / PRECISION
-    return result
-
-def get_y(i, j, x, _xp, amp):
-    '''
-    i = position of the token that we put in 
-    j = position of the token that we want to get out 
-    x = new balance after adding the amount of tokens we put in 
-    xp = current balances of the pool
-    amp = scaled amplification factor (A*n**(n-1))
-    '''
-    # x in the input is converted to the same price/precision
-
-    assert (i != j) and (i >= 0) and (j >= 0) and (i < N_COINS) and (j < N_COINS)
-
-    D = get_D(_xp, amp)
-    c = D
-    S_ = 0
-    Ann = amp * N_COINS
-
-    _x = 0
-    for _i in range(N_COINS):
-        if _i == i:
-            _x = x
-        elif _i != j:
-            _x = _xp[_i]
-        else:
-            continue
-        S_ += _x
-        c = c * D // (_x * N_COINS)
-    c = c * D // (Ann * N_COINS)
-    b = S_ + D // Ann  # - D
-    y_prev = 0
-    y = D
-    for _i in range(255):
-        y_prev = y
-        y = (y*y + c) // (2 * y + b - D)
-        # Equality with the precision of 1
-        if y > y_prev:
-            if y - y_prev <= 1:
-                break
-        else:
-            if y_prev - y <= 1:
-                break
-    return y
-
-def get_dy(i, j, xp, dx, amp, rates, fee):
-    '''
-    Slightly modified from the contracts, get the amount out from the amount given in. Removed precision stuff for now. See line 370. https://github.com/curvefi/curve-contract/blob/master/contracts/pools/usdt/StableSwapUSDT.vy
-
-    i = position of the token that we put in 
-    j = position of the token that we want to get out 
-    x = new balance after adding the amount of tokens we put in 
-    xp = current balances of the pool
-    amp = scaled amplification factor (A*n**(n-1))
-    '''
-    # dx and dy in c-units
-    #rates: uint256[N_COINS] = self._stored_rates()
-    xp = _xp(xp, rates)
-
-    x = xp[i] + dx * rates[i] // PRECISION
-    y = get_y(i, j, x, xp, amp)
-    dy = (xp[j] - y) * PRECISION // rates[j]
-    _fee = fee * dy // FEE_DENOMINATOR
-    return dy - _fee
 
 #Expression of the invariant of the USDT pool in the contract code
 def USDTpool(xp, amp, D):
@@ -175,13 +48,13 @@ current_values = [int(351794.69*10**18),int(689185.73*10**18),int(382505.53*10**
 
 #Test that we get 0 for the current values in the pool
 if False:
-    D = get_D(current_values, amp)
+    D = solver.get_D(current_values, amp)
     print(USDTpool(current_values, amp, D))
 
 #Test that the spot prices are indeed 1 with the current values in the pool
 
 if False:
-    D = get_D(current_values, amp)
+    D = solver.get_D(current_values, amp)
     invariant = lambda x : USDTpool(x, amp, D)
     spot1 = price_calcs.getSpotPrice(invariant, current_values, [0,1])
     spot2 = price_calcs.getSpotPrice(invariant, current_values, [0,2])
@@ -201,7 +74,7 @@ while False:
              randint(0, current_values[1]+funds_avail), 
              randint(0, current_values[2]+funds_avail)]
     #value = get_I(coins,amp)
-    D = get_D(coins, amp)
+    D = solver.get_D(coins, amp)
     u = USDTpool(coins, amp, D)
     if abs(u)>0:
         print(coins)
@@ -249,7 +122,7 @@ if False:
     #List storing all the spot prices pair for each pool that is a solution to our problem
     spot_prices_for_solutions = [] 
     for x in x_sols:
-        D = get_D(x, amp)
+        D = solver.get_D(x, amp)
         invariant = lambda x : USDTpool(x, amp, D)
         #Get all the spot prices of the different pairs with that new invariant
         spot1 = price_calcs.getSpotPrice(invariant, x, [0,1])
@@ -265,7 +138,7 @@ if False:
     #List storing all the slippage between the pairs for each pool that is a solution to our problem
     slippage_solutions = [] 
     for x in x_sols:
-        D = get_D(x, amp)
+        D = solver.get_D(x, amp)
         invariant = lambda x : USDTpool(x, amp, D)
         #Get all the spot prices of the different pairs with that new invariant
         spot1 = price_calcs.getSlippage(invariant, x, 10000000*1e18, [0,1])
@@ -278,7 +151,7 @@ if False:
 #Verify how profitable a potential attack might be by comparing the new spot price with the slippage for a large order
 if False:
     attack_balance = [1499652125335257,3153232734120070,427674227529]#cdai, cusdc,usdt
-    D = get_D(attack_balance, amp)
+    D = solver.get_D(attack_balance, amp)
     invariant = lambda x : USDTpool(x, amp, D)
     spot0 = price_calcs.getSpotPrice(invariant, attack_balance, [0,1])
     spot1 = price_calcs.getSpotPrice(invariant, attack_balance, [0,2])
@@ -303,7 +176,7 @@ if False:
         usdc = 3153232734120070
         usdt = 427674227529
         current_values = [dai, usdc, usdt]
-        D = get_D(current_values, amp)
+        D = solver.get_D(current_values, amp)
         invariant = lambda x : USDTpool(x, amp, D)
         #To change with real values
         rates = 0
@@ -316,8 +189,8 @@ if False:
 
         #DAI test
         amount_in = randint(dai//100, dai//10)
-        amount_usdc_out = get_dy(0, 1, current_values, amount_in, amp, rates, fee)
-        amount_usdt_out = get_dy(0,2, current_values, amount_in, amp, rates, fee)
+        amount_usdc_out = solver.get_dy(0, 1, current_values, amount_in, amp, rates, fee)
+        amount_usdt_out = solver.get_dy(0,2, current_values, amount_in, amp, rates, fee)
         #If we find something that gives us an effective price of more than 1.05, print it
         if amount_usdc_out > 1.05*amount_in:
             print("Solution found, swap DAI for USDC")
