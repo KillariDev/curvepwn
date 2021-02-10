@@ -330,7 +330,7 @@ while True:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Iteration " + str(iteration) + "\n \n")
-            file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT")
+            file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT\n")
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
             
