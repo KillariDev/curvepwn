@@ -276,6 +276,7 @@ fee = 4000000
 #Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
 funds_avail = [100000000*10**18, 100000000*10**6, 100000000*10**6]
 funds_avail_ctokens = [funds_avail[0]*PRECISION//rates[0], funds_avail[1]*PRECISION//rates[1], funds_avail[2]*PRECISION//rates[2]]
+funds_sell_ctokens = [1497583531010282//2, 3258032451817647//2, 40550284699//2]
 
 iteration = 0
 
@@ -290,9 +291,9 @@ while True:
     usdt = usdt
     
     #Random perturbation to the pool composition between 1 and the funds available
-    perturb_dai  = randint(cdai, cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
-    perturb_usdc = randint(usdc, usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
-    perturb_usdt = randint(usdt, usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
+    perturb_dai  = randint(cdai - funds_sell_ctokens[0], cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
+    perturb_usdc = randint(usdc - funds_sell_ctokens[1], usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
+    perturb_usdt = randint(usdt - funds_sell_ctokens[2], usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
     
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
 
