@@ -274,7 +274,7 @@ rates = [210610623344836502016616268, 215836695449259000000000000, 1000000000000
 fee = 4000000
 
 #Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
-funds_avail = [100000000*1e18, 100000000*1e6, 100000000*1e6]
+funds_avail = [100000000*10**18, 100000000*10**6, 100000000*10**6]
 funds_avail_ctokens = [funds_avail[0]*PRECISION//rates[0], funds_avail[1]*PRECISION//rates[1], funds_avail[2]*PRECISION//rates[2]]
 
 iteration = 0
