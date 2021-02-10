@@ -331,6 +331,9 @@ while True:
             file.write("Iteration " + str(iteration) + "\n \n")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT")
+            file.write("Invalid D: " + str(D) + "\n")
+            file.write("U: " + str(u) + "\n")
+            
             file.write("Amount of tokens to add: " + str((perturbed_dai-dai)*PRECISION//rates[0]) + " cDAI, " + str((perturbed_usdc-usdc)*PRECISION//rates[1]) +  " cUSDC, " + str((perturbed_usdt-usdt)*PRECISION//rates[2]) + " USDT \n")
             file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
