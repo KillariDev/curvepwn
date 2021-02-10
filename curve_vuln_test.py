@@ -328,8 +328,8 @@ while True:
         #If we get more than 1.05 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
         if amount_usdc_out_underlying > 1.01*amount_dai_in_underlying:
             print("Solution found!")
-            file.write("Iteration " + str(iteration) + "\n \n")
             file = open("D_based_attack_solutions.txt", "a")
+            file.write("Iteration " + str(iteration) + "\n \n")
             file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT")
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
