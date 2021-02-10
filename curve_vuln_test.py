@@ -328,12 +328,13 @@ while True:
         #If we get more than 1.05 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
         if amount_usdc_out_underlying > 1.01*amount_dai_in_underlying:
             print("Solution found!")
+            file.write("Iteration " + str(iteration) + "\n \n")
             file = open("D_based_attack_solutions.txt", "a")
+            file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT")
             file.write("Amount of tokens to add: " + str((perturbed_dai-dai)*PRECISION//rates[0]) + " cDAI, " + str((perturbed_usdc-usdc)*PRECISION//rates[1]) +  " cUSDC, " + str((perturbed_usdt-usdt)*PRECISION//rates[2]) + " USDT \n")
             file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
             file.write("Effective exchange rate :" + str(amount_usdc_out_underlying/amount_dai_in_underlying) + "\n")
-            file.write("Iteration " + str(iteration) + "\n \n")
             print("...")
             file.close()
 
