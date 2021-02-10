@@ -75,7 +75,7 @@ def _xp(current_balances, rates):
     '''
     Converts cTokens into Tokens by multiplying by their respective rates, read from the Compound contract
     '''
-    result = rates
+    result = rates.copy()
     for i in range(N_COINS):
         result[i] = result[i] * current_balances[i] // PRECISION
     return result
@@ -143,7 +143,7 @@ def get_dy(i, j, xp, dx, amp, rates, fee):
     _fee = fee * dy // FEE_DENOMINATOR
     return dy - _fee
 
-def _exchange(i, j, xp, dx, rates, fee):
+def _exchange(i, j, xp, dx, rates, fee, amp):
     '''
     See Curve USDT pool contract line 425
     i = index of token in
@@ -155,7 +155,7 @@ def _exchange(i, j, xp, dx, rates, fee):
     '''
     # dx and dy are in c-tokens
 
-    xp = _xp(xp, rates)
+    xp = _xp(xp.copy(), rates)
 
     x = xp[i] + dx * rates[i] // PRECISION
     y = get_y(i, j, x, xp, amp)
@@ -170,3 +170,4 @@ def _exchange(i, j, xp, dx, rates, fee):
     _dy = (dy - dy_fee) * PRECISION // rates[j]
 
     return _dy
+     

@@ -202,7 +202,9 @@ while True:
     D = solver.get_D(current_values_underlying, amp)
     #Check that we get 0
     invariant = lambda x : USDTpool(x, amp, D)
+
     if (invariant(current_values_underlying) != 0):
+        print(current_values_underlying)
         print("D calculation failed!", invariant(current_values_underlying))
         break
 
@@ -214,8 +216,9 @@ while True:
     #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
     amount_dai_in_underlying = amount_dai_in_ctoken*rates[0] // PRECISION
     #Check the amount of cUSDC calculated out for that amount in
-    amount_usdc_out_ctokens = solver._exchange(0, 1, current_values, amount_dai_in_ctoken, rates, fee)
 
+    amount_usdc_out_ctokens = solver._exchange(0, 1, current_values, amount_dai_in_ctoken, rates, fee, amp)
+    
     ###################################################################################
     #######                             TO FIX                                  ####### 
     ###################################################################################
@@ -223,14 +226,14 @@ while True:
     # ZeroDivisionError: integer division or modulo by zero. Why? Need to investigate.
     ###################################################################################
 
-
-    #Convert to the corresponding amount of USDC
-    amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
-    #If we find something that gives us an effective price of more than 1.05, print it 
-    if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
-        print("Solution found, swap DAI for USDC")
-        print("Amount to swap: ", amount_dai_in_underlying)
-        print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
-        print("...")
+    if False:
+        #Convert to the corresponding amount of USDC
+        amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
+        #If we find something that gives us an effective price of more than 1.05, print it 
+        if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
+            print("Solution found, swap DAI for USDC")
+            print("Amount to swap: ", amount_dai_in_underlying)
+            print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
+            print("...")
 
     #To adapt for USDC and USDT
