@@ -29,6 +29,12 @@ amp = 2000
 ADMIN_ACTIONS_DELAY = 3 * 86400
 MIN_RAMP_TIME = 86400
 
+def write(filename, row):
+    f = open(filename +'.txt', "a")
+    f.write(row + '\n')
+    print(row)
+    f.close()
+
 #Expression of the invariant of the USDT pool in the contract code
 def USDTpool(xp, amp, D):
     '''
@@ -207,8 +213,8 @@ def solutionFinder(s):
         invariant = lambda x : USDTpool(x, amp, D)
 
         if (invariant(current_values_underlying) != 0):
-            print(current_values_underlying)
-            print("D calculation failed!", invariant(current_values_underlying))
+            write(str(s),current_values_underlying)
+            write(str(s),"D calculation failed!"+ str(invariant(current_values_underlying)))
             break
 
         #DAI test
@@ -233,10 +239,10 @@ def solutionFinder(s):
         amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
         #If we find something that gives us an effective price of more than 1.05, print it 
         if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
-            print("Solution found, swap DAI for USDC")
-            print("Amount to swap: ", amount_dai_in_underlying)
-            print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
-            print("...")
+            write(str(s),"Solution found, swap DAI for USDC")
+            write(str(s),"Amount to swap: "+ str(amount_dai_in_underlying)
+            write(str(s),"Profit: "+ str((amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION)+ " USD")
+            write(str(s),"...")
         #To adapt for USDC and USDT
     print('Thread ended with seed.', s)
 N_THREADS = 10
