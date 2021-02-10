@@ -290,14 +290,14 @@ while True:
     usdt = usdt
     
     #Random perturbation to the pool composition between 1 and the funds available
-    perturb_dai  = randint(cdai, cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
-    perturb_usdc = randint(usdc, usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
-    perturb_usdt = randint(usdt, usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
+    perturbed_dai  = randint(cdai, cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
+    perturbed_usdc = randint(usdc, usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
+    perturbed_usdt = randint(usdt, usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
     
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
 
     #Add flash loaned liquidity to the pool
-    new_values_underlying = [perturb_dai, perturb_usdc, perturb_usdt]
+    new_values_underlying = [perturbed_dai, perturbed_usdc, perturbed_usdt]
     #Get D for this new pool composition
     D = solver.get_D(new_values_underlying, amp)
     #Check if the D found breaks the invariant
@@ -322,8 +322,8 @@ while True:
         if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
-            file.write("Amount of tokens to add: " + str(perturb_dai*PRECISION//rates[0]) + " cDAI, " + str(perturb_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturb_usdt*PRECISION//rates[2]) + " USDT \n")
-            file.write("Corresponding amount of underlying: " + str(perturb_dai) + " cDAI, " + str(perturb_usdc) +  " cUSDC, " + str(perturb_usdt) + " USDT \n")
+            file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
+            file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
             file.write("Effective exchange rate :" + str(amount_usdc_out_underlying/amount_dai_in_underlying) + "\n")
             file.write("Iteration " + str(iteration) + "\n \n")
@@ -343,8 +343,8 @@ while True:
         if amount_dai_out_underlying > 1.05*amount_usdc_in_underlying:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
-            file.write("Amount of tokens to add: " + str(perturb_dai*PRECISION//rates[0]) + " cDAI, " + str(perturb_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturb_usdt*PRECISION//rates[2]) + " USDT \n")
-            file.write("Corresponding amount of underlying: " + str(perturb_dai) + " cDAI, " + str(perturb_usdc) +  " cUSDC, " + str(perturb_usdt) + " USDT \n")
+            file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
+            file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap USDC for DAI. Amount to swap: " + str(amount_usdc_in_underlying)+ "\n")
             file.write("Effective exchange rate :" + str(amount_dai_out_underlying/amount_usdc_in_underlying) + "\n")
             file.write("Iteration " + str(iteration) + "\n \n")
