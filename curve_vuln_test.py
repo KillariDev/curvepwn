@@ -331,6 +331,25 @@ while True:
             file.close()
 
         #USDC -> DAI test
+        #Try to swap 10% of the original amount of cTokens and see what we get out 
+        amount_usdc_in_ctoken = cusdc // 10
+        #Convert that in the corresponding amount of Tokens using the rates function, same as in the _xp() fucntion
+        amount_usdc_in_underlying = amount_usdc_in_ctoken*rates[1] // PRECISION
+        #Check the amount of cToken calculated out for that amount in
+        amount_dai_out_ctokens = solver._exchange(1, 0, new_values, amount_usdc_in_ctoken, rates, fee, amp)
+        #Convert to the corresponding amount of Token
+        amount_dai_out_underlying = amount_dai_out_ctokens*rates[1] // PRECISION
+        #If we get more than 1.05 tokens out for each token in, save the amounts required for the attack and the discrepancy in effective price
+        if amount_dai_out_underlying > 1.05*amount_usdc_in_underlying:
+            print("Solution found!")
+            file = open("D_based_attack_solutions.txt", "a")
+            file.write("Amount of tokens to add: " + str(perturb_dai*PRECISION//rates[0]) + " cDAI, " + str(perturb_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturb_usdt*PRECISION//rates[2]) + " USDT \n")
+            file.write("Corresponding amount of underlying: " + str(perturb_dai) + " cDAI, " + str(perturb_usdc) +  " cUSDC, " + str(perturb_usdt) + " USDT \n")
+            file.write("Swap USDC for DAI. Amount to swap: " + str(amount_usdc_in_underlying)+ "\n")
+            file.write("Effective exchange rate :" + str(amount_dai_out_underlying/amount_usdc_in_underlying) + "\n")
+            file.write("Iteration " + str(iteration) + "\n \n")
+            print("...")
+            file.close()
 
         #DAI -> USDT test
 
