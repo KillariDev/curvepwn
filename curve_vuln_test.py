@@ -38,7 +38,7 @@ def write(filename, row):
 #Expression of the invariant of the USDT pool in the contract code
 def USDTpool(xp, amp, D):
     '''
-    Return f(D)
+    Return f(D), takes xp in TokenPrecision units
     '''
     #amp is already A*n**(n-1)
     Ann = amp*N_COINS
@@ -296,13 +296,17 @@ seed(14579634)
 while True: 
     #Random perturbation to the pool composition between 1 and the funds available
     perturbed_cdai  = randint(cdai - funds_perturb_negative_ctokens[0], cdai + funds_avail_ctokens[0])
-    perturbed_cusdc = randint(usdc - funds_perturb_negative_ctokens[1], usdc + funds_avail_ctokens[1])
+    perturbed_cusdc = randint(cusdc - funds_perturb_negative_ctokens[1], cusdc + funds_avail_ctokens[1])
     perturbed_usdt = randint(usdt - funds_perturb_negative_ctokens[2], usdt + funds_avail_ctokens[2])
 
+    #Convert the perturbed balances into underlying (Tokens)
+    perturbed_dai = perturbed_cdai*rates[0]//PRECISION
+    perturbed_usdc = perturbed_cusdc*rates[1]//PRECISION
+
     #Add flash loaned liquidity to the pool
-    new_values_underlying = [perturbed_cdai, perturbed_cusdc, perturbed_usdt]
-    #Get D for this new pool composition
-    xp = [new_values_underlying[0] * rates[0] // PRECISION, new_values_underlying[1] * rates[1] // PRECISION, new_values_underlying[2] * rates[2] // PRECISION]
+    new_values_underlying = [perturbed_dai, perturbed_usdc, perturbed_usdt]
+    #Get D for this new pool composition, expressed in TokensPrecision
+    xp = [new_values_underlying[0] * PRECISION, new_values_underlying[1] * PRECISION, new_values_underlying[2] * PRECISION]
     D = solver.get_D(xp, amp)
     #Check if the D found breaks the invariant
     u = USDTpool(xp, amp, D)

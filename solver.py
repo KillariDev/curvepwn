@@ -16,6 +16,9 @@ ADMIN_ACTIONS_DELAY = 3 * 86400
 MIN_RAMP_TIME = 86400
 
 def get_D(xp, amp):
+    '''
+    xp = Balances in underlying tokens with increased precision = TokensPrecision unit
+    '''
     S = 0
 
     for _x in xp:
