@@ -283,6 +283,9 @@ def CTokensToTokens(amount, index):
 def CTokensToTokensIncreasedPrecision(amount, index):
     return rates[index] * amount// PRECISION
 
+def TokensIncreasedPrecisionToCTokens(amount, index):
+    return amount*PRECISION//rates[index]
+
 denoms = [10**18, 10**6, 10**6]
 
 def TokensToDollars(amount, index):
@@ -312,35 +315,29 @@ current_values_underlying = [dai, usdc, usdt]
 iteration = 0
 seed(14579634)
 while True: 
-    #Random perturbation to the pool composition between 1 and the funds available
-    perturbed_cdai  = randint(cdai - funds_perturb_negative_ctokens[0], cdai + funds_avail_ctokens[0])
-    perturbed_cusdc = randint(cusdc - funds_perturb_negative_ctokens[1], cusdc + funds_avail_ctokens[1])
-    perturbed_usdt = randint(usdt - funds_perturb_negative_ctokens[2], usdt + funds_avail_ctokens[2])
-    perturbed_c_tokens = [perturbed_cdai, perturbed_cusdc, perturbed_usdt]
-
-    #Convert the perturbed balances into underlying (Tokens)
-    perturbed_dai = CTokensToTokens(perturbed_cdai,0)
-    perturbed_usdc = CTokensToTokens(perturbed_cusdc,1)
-
-    #Add flash loaned liquidity to the pool
-    new_values_underlying = [perturbed_dai, perturbed_usdc, perturbed_usdt]
-    #Get D for this new pool composition, expressed in TokensPrecision
-    xp = [CTokensToTokensIncreasedPrecision(perturbed_cdai, 0), CTokensToTokensIncreasedPrecision(perturbed_cusdc, 1), CTokensToTokensIncreasedPrecision(perturbed_usdt, 2) ]
-    D = solver.get_D(xp, amp)
+    #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
+    rand_balance = randint(max([dai*PRECISION, usdc*PRECISION, usdt*PRECISION]), max([dai*PRECISION, usdc*PRECISION, usdt*PRECISION]) + 10000000*PRECISION)
+    attack_balances_tokens_precision = [rand_balance, rand_balance, rand_balance] 
+    #Get D for this pool composition
+    D = solver.get_D(attack_balances_tokens_precision, amp)
     #Check if the D found breaks the invariant
-    u = USDTpool(xp, amp, D)
+    u = USDTpool(attack_balances_tokens_precision, amp, D)
     
     if abs(u) > 0:
         print("Invalid D found! \n")
         print("Iteration ", iteration, "\n \n")
         #DAI -> USDC test
+        #Convert the attack balances from TokensIncreasedPrecision to cTokens
+        attack_balances_c_tokens = [0,0,0]
+        attack_balances_c_tokens[0] = TokensIncreasedPrecisionToCTokens(attack_balances_tokens_precision[0], 0)
+        attack_balances_c_tokens[1] = TokensIncreasedPrecisionToCTokens(attack_balances_tokens_precision[1], 1)
+        attack_balances_c_tokens[2] = TokensIncreasedPrecisionToCTokens(attack_balances_tokens_precision[2], 2)
         #Try to swap 10% of the original amount of cTokens and see what we get out 
         amount_dai_in_ctoken = cdai // 10
         #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
         amount_dai_in_underlying = CTokensToTokens(amount_dai_in_ctoken,0)
         #Check the amount of cUSDC calculated out for that amount in
-
-        amount_usdc_out_ctokens = solver._exchange(0, 1, perturbed_c_tokens, amount_dai_in_ctoken, rates, fee, amp)
+        amount_usdc_out_ctokens = solver._exchange(0, 1, attack_balances_c_tokens, amount_dai_in_ctoken, rates, fee, amp)
         #Convert to the corresponding amount of USDC
         amount_usdc_out_underlying = CTokensToTokens(amount_usdc_out_ctokens,1)
         #If we get more than 1.03 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
@@ -349,13 +346,13 @@ while True:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Iteration " + str(iteration) + "\n \n")
-            file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT\n")
-            file.write("Composition of the pool returning an invalid D in cTokens: " + str(perturbed_c_tokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]) + "cUSDC, " + str(perturbed_c_tokens[2]) + "USDT\n")
+            file.write("Composition of the pool returning an invalid D in underlying: " + str(attack_balances_tokens_precision[0]//PRECISION) + " DAI, " + str(attack_balances_tokens_precision[1]//PRECISION) + "USDC, " + str(attack_balances_tokens_precision[2]//PRECISION) + "USDT\n")
+            file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + "cUSDC, " + str(attack_balances_c_tokens[2]) + "USDT\n")
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
             
-            file.write("Amount of tokens to add: " + str(perturbed_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(perturbed_c_tokens[2]-current_ctokens[2]) + " USDT \n")
-            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(perturbed_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(perturbed_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(perturbed_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
+            file.write("Amount of tokens to add: " + str(attack_balances_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(attack_balances_c_tokens[2]-current_ctokens[2]) + " USDT \n")
+            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(attack_balances_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(attack_balances_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(attack_balances_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
             
             file.write("Swap cDAI for cUSDC. Amount to swap: " + str(amount_dai_in_ctoken)+ "cDAI\n")
             file.write("Effective exchange rate :" + str(TokensToDollars(amount_usdc_out_underlying,1)/TokensToDollars(amount_dai_in_underlying,0)) + "\n")
@@ -368,7 +365,7 @@ while True:
         #Convert that in the corresponding amount of Tokens using the rates function, same as in the _xp() fucntion
         amount_usdc_in_underlying = CTokensToTokens(amount_usdc_in_ctoken,1)
         #Check the amount of cToken calculated out for that amount in
-        amount_dai_out_ctokens = solver._exchange(1, 0, perturbed_c_tokens, amount_usdc_in_ctoken, rates, fee, amp)
+        amount_dai_out_ctokens = solver._exchange(1, 0, attack_balances_c_tokens, amount_usdc_in_ctoken, rates, fee, amp)
         #Convert to the corresponding amount of Token
         amount_dai_out_underlying = CTokensToTokens(amount_dai_out_ctokens,0)
         #If we get more than 1.05 tokens out for each token in, save the amounts required for the attack and the discrepancy in effective price
@@ -376,13 +373,13 @@ while True:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Iteration " + str(iteration) + "\n \n")
-            file.write("Composition of the pool returning an invalid D in underlying: " + str(new_values_underlying[0]) + " DAI, " + str(new_values_underlying[1]) + "USDC, " + str(new_values_underlying[2]) + "USDT\n")
-            file.write("Composition of the pool returning an invalid D in cTokens: " + str(perturbed_c_tokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]) + "cUSDC, " + str(perturbed_c_tokens[2]) + "USDT\n")
+            file.write("Composition of the pool returning an invalid D in underlying: " + str(attack_balances_tokens_precision[0]//PRECISION) + " DAI, " + str(attack_balances_tokens_precision[1]//PRECISION) + "USDC, " + str(attack_balances_tokens_precision[2]//PRECISION) + "USDT\n")
+            file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + "cUSDC, " + str(attack_balances_c_tokens[2]) + "USDT\n")
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
             
-            file.write("Amount of tokens to add: " + str(perturbed_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(perturbed_c_tokens[2]-current_ctokens[2]) + " USDT \n")
-            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(perturbed_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(perturbed_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(perturbed_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
+            file.write("Amount of tokens to add: " + str(attack_balances_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(attack_balances_c_tokens[2]-current_ctokens[2]) + " USDT \n")
+            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(attack_balances_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(attack_balances_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(attack_balances_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
             
             file.write("Swap cUSDC for cDAI. Amount to swap: " + str(amount_usdc_in_ctoken)+ " cUSCC\n")
             file.write("Effective exchange rate :" + str(TokensToDollars(amount_dai_out_underlying,0)/TokensToDollars(amount_usdc_in_underlying,1)) + "\n")
