@@ -281,7 +281,7 @@ def CTokensToTokens(amount, index):
     return amount*(rates[index]//PRECISION_MUL[index])//PRECISION
 
 def CTokensToTokensIncreasedPrecision(amount, index):
-    return amount * rates[index] // PRECISION
+    return rates[index] * amount// PRECISION
 
 denoms = [10**18, 10**6, 10**6]
 
