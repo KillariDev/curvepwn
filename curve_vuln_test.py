@@ -280,6 +280,8 @@ funds_sell_ctokens = [1497583531010282//2, 3258032451817647//2, 40550284699//2]
 
 iteration = 0
 
+seed(14579634)
+
 while True: 
     #Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
     cdai = 1497583531010282
@@ -304,6 +306,8 @@ while True:
     #Check if the D found breaks the invariant
     u = USDTpool(new_values_underlying, amp, D)
     if abs(u) > 0:
+        print("Invalid D found! \n")
+        print("Iteration ", iteration, "\n \n")
         #Convert new balances back to cTokens
         new_cdai = new_values_underlying[0] * PRECISION // rates[0]
         new_cusdc = new_values_underlying[1] * PRECISION // rates[1]
@@ -320,7 +324,7 @@ while True:
         #Convert to the corresponding amount of USDC
         amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
         #If we get more than 1.05 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
-        if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
+        if amount_usdc_out_underlying > 1.01*amount_dai_in_underlying:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
@@ -341,7 +345,7 @@ while True:
         #Convert to the corresponding amount of Token
         amount_dai_out_underlying = amount_dai_out_ctokens*rates[1] // PRECISION
         #If we get more than 1.05 tokens out for each token in, save the amounts required for the attack and the discrepancy in effective price
-        if amount_dai_out_underlying > 1.05*amount_usdc_in_underlying:
+        if amount_dai_out_underlying > 1.01*amount_usdc_in_underlying:
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
