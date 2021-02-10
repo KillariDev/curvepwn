@@ -172,7 +172,7 @@ if False:
 #Try to find an amount to swap that would break the peg 
 
 #Read by the attack contract from Compound
-rates = [210570756987449009169586140, 215800661448826000000000000, 1000000000000000000000000000000]
+rates = [210610623344836502016616268, 215836695449259000000000000, 1000000000000000000000000000000]
 #Read from Etherscan for the USDT pool
 fee = 4000000
 
@@ -180,14 +180,16 @@ iteration = 0
 
 while True: 
     #Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
-    cdai = 1499652125335257
-    cusdc = 3153232734120070
-    usdt = 427674227529
+    cdai = 1497583531010282
+    cusdc = 3258032451817647
+    usdt = 40550284699
     dai = cdai * rates[0] // PRECISION
     usdc = cusdc * rates[1] // PRECISION
+    usdt = usdt
+
     #In the USDT pool, the respective positions of the tokens are DAI, USDC, USDT
     current_values = [cdai, cusdc, usdt]
-    current_values_underlying = [dai, usdc, usdt]
+    current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
     ###################################################################################
     #######                             TO FIX                                  ####### 
     ###################################################################################
