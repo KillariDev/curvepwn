@@ -276,26 +276,28 @@ fee = 4000000
 #Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
 funds_avail = [100000000*10**18, 100000000*10**6, 100000000*10**6]
 funds_avail_ctokens = [funds_avail[0]*PRECISION//rates[0], funds_avail[1]*PRECISION//rates[1], funds_avail[2]*PRECISION//rates[2]]
-funds_sell_ctokens = [1497583531010282//2, 3258032451817647//2, 40550284699//2]
 
+#Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
+cdai = 1497583531010282
+cusdc = 3258032451817647
+usdt = 40550284699
+
+#funds_sell_ctokens = [cdai//2, cusdc//2, usdt//2]
+funds_perturb_negative_ctokens = [0,0,0]
+
+#Conversion to underlying
+dai = cdai * rates[0] // PRECISION
+usdc = cusdc * rates[1] // PRECISION
+usdt = usdt
 iteration = 0
 
 seed(14579634)
 
 while True: 
-    #Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
-    cdai = 1497583531010282
-    cusdc = 3258032451817647
-    usdt = 40550284699
-    #Conversion to underlying
-    dai = cdai * rates[0] // PRECISION
-    usdc = cusdc * rates[1] // PRECISION
-    usdt = usdt
-    
     #Random perturbation to the pool composition between 1 and the funds available
-    perturbed_dai  = randint(cdai - funds_sell_ctokens[0], cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
-    perturbed_usdc = randint(usdc - funds_sell_ctokens[1], usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
-    perturbed_usdt = randint(usdt - funds_sell_ctokens[2], usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
+    perturbed_dai  = randint(cdai - funds_perturb_negative_ctokens[0], cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
+    perturbed_usdc = randint(usdc - funds_perturb_negative_ctokens[1], usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
+    perturbed_usdt = randint(usdt - funds_perturb_negative_ctokens[2], usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
 
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
 
