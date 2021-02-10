@@ -315,11 +315,11 @@ while True:
         #Try to swap 10% of the original amount of cTokens and see what we get out 
         amount_dai_in_ctoken = cdai // 10
         #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
-        amount_dai_in_underlying = amount_dai_in_ctoken* (PRECISION / (rates[0] / PRECISION_MUL[0]))
+        amount_dai_in_underlying = amount_dai_in_ctoken* (PRECISION // (rates[0] // PRECISION_MUL[0]))
         #Check the amount of cUSDC calculated out for that amount in
         amount_usdc_out_ctokens = solver._exchange(0, 1, xp, amount_dai_in_ctoken, rates, fee, amp)
         #Convert to the corresponding amount of USDC
-        amount_usdc_out_underlying = amount_usdc_out_ctokens* (PRECISION / (rates[1] / PRECISION_MUL[1]))
+        amount_usdc_out_underlying = amount_usdc_out_ctokens* (PRECISION // (rates[1] // PRECISION_MUL[1]))
         #If we get more than 1.05 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
         if amount_usdc_out_underlying*PRECISION_MUL[1] > 1.01*amount_dai_in_underlying*PRECISION_MUL[0]:
             print("Solution found!")
@@ -340,11 +340,11 @@ while True:
         #Try to swap 10% of the original amount of cTokens and see what we get out 
         amount_usdc_in_ctoken = cusdc // 10
         #Convert that in the corresponding amount of Tokens using the rates function, same as in the _xp() fucntion
-        amount_usdc_in_underlying = amount_usdc_in_ctoken* (PRECISION / (rates[1] / PRECISION_MUL[1]))
+        amount_usdc_in_underlying = amount_usdc_in_ctoken* (PRECISION // (rates[1] // PRECISION_MUL[1]))
         #Check the amount of cToken calculated out for that amount in
         amount_dai_out_ctokens = solver._exchange(1, 0, xp, amount_usdc_in_ctoken, rates, fee, amp)
         #Convert to the corresponding amount of Token
-        amount_dai_out_underlying = amount_dai_out_ctokens* (PRECISION / (rates[0] / PRECISION_MUL[0]))
+        amount_dai_out_underlying = amount_dai_out_ctokens* (PRECISION // (rates[0] // PRECISION_MUL[0]))
         #If we get more than 1.05 tokens out for each token in, save the amounts required for the attack and the discrepancy in effective price
         if amount_dai_out_underlying*PRECISION_MUL[0] > 1.01*amount_usdc_in_underlying*PRECISION_MUL[1]:
             print("Solution found!")
