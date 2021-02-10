@@ -353,7 +353,7 @@ while True:
             #file.write("Amount of tokens to add: " + str((perturbed_dai-dai)*PRECISION//rates[0]) + " cDAI, " + str((perturbed_usdc-usdc)*PRECISION//rates[1]) +  " cUSDC, " + str((perturbed_usdt-usdt)*PRECISION//rates[2]) + " USDT \n")
             #file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
-            file.write("Effective exchange rate :" + str(amount_usdc_out_underlying/amount_dai_in_underlying) + "\n")
+            file.write("Effective exchange rate :" + str(TokensToDollars(amount_usdc_out_underlying,1)/TokensToDollars(amount_dai_in_underlying,0)) + "\n")
             print("...")
             file.close()
             
@@ -378,7 +378,7 @@ while True:
             #file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
             #file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
             file.write("Swap USDC for DAI. Amount to swap: " + str(amount_usdc_in_underlying)+ "\n")
-            file.write("Effective exchange rate :" + str(amount_dai_out_underlying/amount_usdc_in_underlying) + "\n")
+            file.write("Effective exchange rate :" + str(TokensToDollars(amount_dai_out_underlying,0)/TokensToDollars(amount_usdc_in_underlying,1)) + "\n")
             file.write("Iteration " + str(iteration) + "\n \n")
             print("...")
             file.close()
