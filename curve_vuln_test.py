@@ -226,14 +226,13 @@ while True:
     # ZeroDivisionError: integer division or modulo by zero. Why? Need to investigate.
     ###################################################################################
 
-    if False:
-        #Convert to the corresponding amount of USDC
-        amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
-        #If we find something that gives us an effective price of more than 1.05, print it 
-        if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
-            print("Solution found, swap DAI for USDC")
-            print("Amount to swap: ", amount_dai_in_underlying)
-            print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
-            print("...")
+    #Convert to the corresponding amount of USDC
+    amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
+    #If we find something that gives us an effective price of more than 1.05, print it 
+    if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
+        print("Solution found, swap DAI for USDC")
+        print("Amount to swap: ", amount_dai_in_underlying)
+        print("Profit: ", (amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION, " USD")
+        print("...")
 
     #To adapt for USDC and USDT
