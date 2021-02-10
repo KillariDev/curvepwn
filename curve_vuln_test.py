@@ -273,8 +273,9 @@ rates = [210610623344836502016616268, 215836695449259000000000000, 1000000000000
 #Read from Etherscan for the USDT pool
 fee = 4000000
 
-#Funds available in DAI, USDC, USDT. Assume 100M of each. 
-funds_avail = [100000000*1e18, 100000000*1e18, 100000000*1e18]
+#Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
+funds_avail = [100000000*1e18, 100000000*1e6, 100000000*1e6]
+funds_avail_ctokens = [funds_avail[0]*PRECISION//rates[0], funds_avail[1]*PRECISION//rates[0], funds_avail[2]*PRECISION//rates[2]]
 
 iteration = 0
 
@@ -288,12 +289,12 @@ while True:
     usdc = cusdc * rates[1] // PRECISION
     usdt = usdt
     
-    perturb_dai  = randint(dai, dai  + funds_avail[0]*PRECISION//rates[0])
-    perturb_usdc = randint(usdc,usdc + funds_avail[1]*PRECISION//rates[1])
-    perturb_usdt = randint(usdt, usdt * rates[2] // PRECISION + funds_avail[2]*PRECISION//rates[2])
+    #Random perturbation to the pool composition between 1 and the funds available
+    perturb_dai  = randint(cdai, cdai + funds_avail_ctokens[0]) * rates[0] // PRECISION
+    perturb_usdc = randint(usdc, usdc + funds_avail_ctokens[1]) * rates[1] // PRECISION
+    perturb_usdt = randint(usdt, usdt + funds_avail_ctokens[2]) * rates[2] // PRECISION
     
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
-    #Random perturbation to the pool composition between 1 and the funds available
 
     #Add flash loaned liquidity to the pool
     new_values_underlying = [perturb_dai, perturb_usdc, perturb_usdt]
