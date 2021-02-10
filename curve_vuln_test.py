@@ -287,7 +287,9 @@ denoms = [10**18, 10**6, 10**6]
 
 def TokensToDollars(amount, index):
     return amount/denoms[index]
-
+    
+def CTokensToDollars(amount, index):
+    return CTokensToTokens(amount,index)/denoms[index]
 
 #Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
 funds_avail = [100000000*10**18, 100000000*10**6, 100000000*10**6]
@@ -297,6 +299,7 @@ funds_avail_ctokens = [TokensToCTokens(funds_avail[0],0), TokensToCTokens(funds_
 cdai = 1497583531010282
 cusdc = 3258032451817647
 usdt = 40550284699
+current_ctokens = [cdai, cusdc, usdt]
 
 #funds_sell_ctokens = [cdai//2, cusdc//2, usdt//2]
 funds_perturb_negative_ctokens = [0,0,0]
@@ -350,9 +353,10 @@ while True:
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
             
-            #file.write("Amount of tokens to add: " + str((perturbed_dai-dai)*PRECISION//rates[0]) + " cDAI, " + str((perturbed_usdc-usdc)*PRECISION//rates[1]) +  " cUSDC, " + str((perturbed_usdt-usdt)*PRECISION//rates[2]) + " USDT \n")
-            #file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
-            file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying)+ "\n")
+            file.write("Amount of tokens to add: " + str(perturbed_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(perturbed_c_tokens[2]-current_ctokens[2]) + " USDT \n")
+            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(perturbed_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(perturbed_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(perturbed_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
+            
+            file.write("Swap cDAI for cUSDC. Amount to swap: " + str(amount_dai_in_ctoken)+ "cDAI\n")
             file.write("Effective exchange rate :" + str(TokensToDollars(amount_usdc_out_underlying,1)/TokensToDollars(amount_dai_in_underlying,0)) + "\n")
             print("...")
             file.close()
@@ -375,9 +379,10 @@ while True:
             file.write("Invalid D: " + str(D) + "\n")
             file.write("U: " + str(u) + "\n")
             
-            #file.write("Amount of tokens to add: " + str(perturbed_dai*PRECISION//rates[0]) + " cDAI, " + str(perturbed_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturbed_usdt*PRECISION//rates[2]) + " USDT \n")
-            #file.write("Corresponding amount of underlying: " + str(perturbed_dai) + " cDAI, " + str(perturbed_usdc) +  " cUSDC, " + str(perturbed_usdt) + " USDT \n")
-            file.write("Swap USDC for DAI. Amount to swap: " + str(amount_usdc_in_underlying)+ "\n")
+            file.write("Amount of tokens to add: " + str(perturbed_c_tokens[0]-current_ctokens[0]) + " cDAI, " + str(perturbed_c_tokens[1]-current_ctokens[1]) +  " cUSDC, " + str(perturbed_c_tokens[2]-current_ctokens[2]) + " USDT \n")
+            file.write("Corresponding amount in dollars: " + str(CTokensToDollars(perturbed_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(perturbed_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(perturbed_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
+            
+            file.write("Swap cUSDC for cDAI. Amount to swap: " + str(amount_usdc_in_ctoken)+ " cUSCC\n")
             file.write("Effective exchange rate :" + str(TokensToDollars(amount_dai_out_underlying,0)/TokensToDollars(amount_usdc_in_underlying,1)) + "\n")
             file.write("Iteration " + str(iteration) + "\n \n")
             print("...")
