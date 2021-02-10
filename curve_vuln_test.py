@@ -288,9 +288,9 @@ while True:
     usdt = usdt
     current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
     #Random perturbation to the pool composition between 1 and the funds available
-    perturb_dai = randint(dai, dai+funds_avail[0])
-    perturb_usdc = randint(usdc, usdc+funds_avail[1])
-    perturb_usdt = randint(usdt, usdt+funds_avail[2])
+    perturb_dai = randint(0, funds_avail[0])
+    perturb_usdc = randint(0, funds_avail[1])
+    perturb_usdt = randint(0, funds_avail[2])
     #Add flash loaned liquidity to the pool
     new_values_underlying = [dai+perturb_dai, usdc+perturb_usdc, usdt+perturb_usdt]
     #Get D for this new pool composition
