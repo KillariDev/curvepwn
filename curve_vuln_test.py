@@ -328,7 +328,7 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
         file.write("i = "+ str(i) +'\n')
         file.write("j = "+ str(j) +'\n')
         file.write("amount = "+ str(amount_in_ctoken) +'\n\n')
-        file.write("amountBack = "+ str(DollarsToCTokens(CTokensToDollars(amount_in_ctoken,i)),j) +'\n\n')
+        file.write("amountBack = "+ str(DollarsToCTokens(CTokensToDollars(amount_in_ctoken,i),j)) +'\n\n')
         
         print("...")
         file.close()
@@ -360,8 +360,7 @@ print('Started iteration')
 iteration = 0
 while True: 
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
-    fraction_to_add = uniform(0, 1)
-    attack_balances_c_tokens = [cdai+int(funds_avail_ctokens[0]*fraction_to_add), cusdc+int(funds_avail_ctokens[1]*fraction_to_add), usdt+int(funds_avail_ctokens[2]*fraction_to_add)]
+    attack_balances_c_tokens = [cdai+int(funds_avail_ctokens[0]), cusdc+int(funds_avail_ctokens[1]), usdt+int(funds_avail_ctokens[2])]
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0],0),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1],1),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2],2)]
