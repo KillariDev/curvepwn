@@ -363,7 +363,7 @@ while True:
         file.write("Invalid D found! \n")
         file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
         file.write("Invalid D: " + str(D) + "\n")
-        file.write("U: " + str(u) + "\n")
+        file.write("U: " + str(u) + "\n \n")
         file.close()
         
         performSwap(0, 1, cdai // 10, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
