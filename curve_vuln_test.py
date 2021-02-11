@@ -367,7 +367,7 @@ while True:
     funds_avail_dollars = [CTokensToDollars(funds_avail_ctokens[0], 0), CTokensToDollars(funds_avail_ctokens[1], 1), CTokensToDollars(funds_avail_ctokens[2], 2)]
     max_balance_dollars = max(current_balances_dollars)
     max_funds_avail_dollars = max(funds_avail_dollars)
-    number = randint(max_balance_dollars, max_balance_dollars + max_funds_avail_dollars)
+    number = uniform(max_balance_dollars, max_balance_dollars + max_funds_avail_dollars)
     attack_balance_dollars = [number, number, number]
     attack_balances_c_tokens = [DollarsToCTokens(number, 0), DollarsToCTokens(number, 1), DollarsToCTokens(number, 2)]
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0],0),
@@ -379,13 +379,13 @@ while True:
     u = USDTpool(attack_balances_tokens_precision, amp, D)
     
     if abs(u) > 0:
-        file = open("invalidDs.txt", "a")
-        file.write("Iteration " + str(iteration) + "\n")
-        file.write("Invalid D found! \n")
-        file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
-        file.write("Invalid D: " + str(D) + "\n")
-        file.write("U: " + str(u) + "\n \n")
-        file.close()
+        #file = open("invalidDs.txt", "a")
+        #file.write("Iteration " + str(iteration) + "\n")
+        #file.write("Invalid D found! \n")
+        #file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
+        #file.write("Invalid D: " + str(D) + "\n")
+        #file.write("U: " + str(u) + "\n \n")
+        #file.close()
         
         performSwap(0, 1, cdai // 10, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
         performSwap(1, 0, cusdc // 10, attack_balances_c_tokens, current_ctokens) #USDC -> DAI test
