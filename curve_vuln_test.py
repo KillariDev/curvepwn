@@ -342,7 +342,9 @@ usdc = CTokensToTokens(cusdc,1)
 usdt = CTokensToTokens(usdt,2)
 current_values_underlying = [dai, usdc, usdt]
 iteration = 0
-seed(14579634)
+
+seed(None)
+print('Started iteration')
 while True: 
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
     fraction_to_add = uniform(0, 1)
@@ -356,11 +358,14 @@ while True:
     u = USDTpool(attack_balances_tokens_precision, amp, D)
     
     if abs(u) > 0:
-        print("Invalid D found! \n")
-        print("Iteration ", iteration, "\n \n")
-        print("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
-        print("Invalid D: " + str(D) + "\n")
-        print("U: " + str(u) + "\n")
+        file = open("invalidDs.txt", "a")
+        file.write("Iteration " + str(iteration) + "\n")
+        file.write("Invalid D found! \n")
+        file.write("Iteration ", iteration, "\n \n")
+        file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
+        file.write("Invalid D: " + str(D) + "\n")
+        file.write("U: " + str(u) + "\n")
+        file.close()
         
         performSwap(0, 1, cdai // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
         performSwap(1, 0, cusdc // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDC -> DAI test
