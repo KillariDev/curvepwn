@@ -287,14 +287,17 @@ def TokensIncreasedPrecisionToCTokens(amount, index):
     return amount*PRECISION//rates[index]
 
 denoms = [10**18, 10**6, 10**6]
-tokenNames = ['DAI','USDC','USDT']
-cTokenNames = ['cDAI','cUSDC','USDT']
+tokenNames = ['DAI', 'USDC', 'USDT']
+cTokenNames = ['cDAI', 'cUSDC', 'USDT']
 
 def TokensToDollars(amount, index):
     return amount/denoms[index]
     
 def CTokensToDollars(amount, index):
     return CTokensToTokens(amount,index)/denoms[index]
+    
+def DollarsToCTokens(amount, index):
+    return TokensToCTokens(int(amount*denoms[index]),index)
 
 def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens):
     #Convert that in the corresponding amount of DAI using the rates function, same as in the _xp() fucntion
@@ -325,6 +328,7 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
         file.write("i = "+ str(i) +'\n')
         file.write("j = "+ str(j) +'\n')
         file.write("amount = "+ str(amount_in_ctoken) +'\n\n')
+        file.write("amountBack = "+ str(DollarsToCTokens(CTokensToDollars(amount_in_ctoken,i)),j) +'\n\n')
         
         print("...")
         file.close()
