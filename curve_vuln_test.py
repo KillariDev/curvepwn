@@ -348,7 +348,7 @@ print('Started iteration')
 while True: 
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
     fraction_to_add = uniform(0, 1)
-    attack_balances_c_tokens = [cdai+int(funds_avail[0]*fraction_to_add), cusdc+int(funds_avail[1]*fraction_to_add), usdt+int(funds_avail[2]*fraction_to_add)]
+    attack_balances_c_tokens = [cdai+int(funds_avail_ctokens[0]*fraction_to_add), cusdc+int(funds_avail_ctokens[1]*fraction_to_add), usdt+int(funds_avail_ctokens[2]*fraction_to_add)]
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0],0),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1],1),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2],2)]
@@ -374,6 +374,6 @@ while True:
         
         performSwap(1, 2, cusdc // 10, attack_balances_c_tokens, current_ctokens) #USDC -> USDT test
         performSwap(2, 1, usdt // 10, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
-        
+            
 
     iteration += 1
