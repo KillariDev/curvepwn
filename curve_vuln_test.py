@@ -318,7 +318,14 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
         file.write("Corresponding amount in dollars: " + str(CTokensToDollars(attack_balances_c_tokens[0]-current_ctokens[0],0)) + " $DAI, " + str(CTokensToDollars(attack_balances_c_tokens[1]-current_ctokens[1],1)) +  " $USDC, " + str(CTokensToDollars(attack_balances_c_tokens[2]-current_ctokens[2],2)) + " $USDT \n")
         
         file.write("Swap " + cTokenNames[i] + " for " + cTokenNames[j] + ". Amount to swap: " + str(amount_in_ctoken) + ' ' + cTokenNames[i] + "\n")
-        file.write("Effective exchange rate :" + str(TokensToDollars(amount_out_underlying,j)/TokensToDollars(amount_in_underlying,i)) + "\n\n")
+        file.write("Effective exchange rate :" + str(TokensToDollars(amount_out_underlying,j)/TokensToDollars(amount_in_underlying,i)) + "\n")
+        
+        file.write("attack Vector\n")
+        file.write("attackAdd = [" + str(attack_balances_c_tokens[0]-current_ctokens[0]) + ", " + str(attack_balances_c_tokens[1]-current_ctokens[1]) + ", " + str(attack_balances_c_tokens[2]-current_ctokens[2]) + "]\n")
+        file.write("i = "+ str(i) +'\n')
+        file.write("j = "+ str(j) +'\n')
+        file.write("amount = "+ str(amount_in_ctoken) +'\n\n')
+        
         print("...")
         file.close()
 
