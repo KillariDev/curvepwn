@@ -1,6 +1,24 @@
-from curve_vuln_test import N_COINS, FEE_DENOMINATOR, PRECISION, amp
+N_COINS = 3
+PRECISION_MUL = [1, 1000000000000, 1000000000000]
+
+FEE_DENOMINATOR = 10 ** 10
+PRECISION = 10 ** 18
+
+MAX_ADMIN_FEE = 10 * 10 ** 9
+MAX_FEE = 5 * 10 ** 9
+
+MAX_A = 10 ** 6
+MAX_A_CHANGE = 10
+A_PRECISION = 100
+amp = 2000
+
+ADMIN_ACTIONS_DELAY = 3 * 86400
+MIN_RAMP_TIME = 86400
 
 def get_D(xp, amp):
+    '''
+    xp = Balances in underlying tokens with increased precision = TokensPrecision unit
+    '''
     S = 0
 
     for _x in xp:
@@ -58,9 +76,9 @@ def get_I(xp, amp):
 
 def _xp(current_balances, rates):
     '''
-    Necessary for the function get_dy below, seems to convert the balances into underlying (or wrapped?) tokens
+    Converts cTokens into Tokens by multiplying by their respective rates, read from the Compound contract
     '''
-    result = rates
+    result = rates.copy()
     for i in range(N_COINS):
         result[i] = result[i] * current_balances[i] // PRECISION
     return result
@@ -128,18 +146,19 @@ def get_dy(i, j, xp, dx, amp, rates, fee):
     _fee = fee * dy // FEE_DENOMINATOR
     return dy - _fee
 
-def _exchange(i, j, xp, dx, rates, fee, admin_fee):
+def _exchange(i, j, xp, dx, rates, fee, amp):
     '''
     See Curve USDT pool contract line 425
     i = index of token in
     j = index of token out 
     xp = current balances
-    dx = amount in
-    rates = current exchange rate of cTokens to (from?) Tokens
+    dx = amount in (in cTokens)
+    rates = current exchange rate of cTokens to Tokens
+    returns: dy = amount out (in cTokens)
     '''
     # dx and dy are in c-tokens
 
-    xp = _xp(xp, rates)
+    xp = _xp(xp.copy(), rates)
 
     x = xp[i] + dx * rates[i] // PRECISION
     y = get_y(i, j, x, xp, amp)
@@ -154,3 +173,4 @@ def _exchange(i, j, xp, dx, rates, fee, admin_fee):
     _dy = (dy - dy_fee) * PRECISION // rates[j]
 
     return _dy
+     
