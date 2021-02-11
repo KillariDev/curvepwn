@@ -339,8 +339,6 @@ LoanAmounts = [ 2000000000000000000000000 ,  2000000000000 ,  2000000000000 ]
 funds_avail_ctokens = [ 9492175161208640 ,  9262735174877799 ,  2000000000000 ]
 rates = [ 210699862363827219553716955 ,  215918944268682000000000000 ,  1000000000000000000000000000000 ]
 
-
-
 ##########################
 ##########################
 ##########################
@@ -349,24 +347,13 @@ rates = [ 210699862363827219553716955 ,  215918944268682000000000000 ,  10000000
 #funds_avail = [500000*10**18, 500000*10**6, 500000*10**6]
 #funds_avail_ctokens = [TokensToCTokens(funds_avail[0],0), TokensToCTokens(funds_avail[1],1), TokensToCTokens(funds_avail[2],2)]#Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
 
-
 cdai = current_ctokens[0]
 cusdc = current_ctokens[1]
 usdt = current_ctokens[2]
 
-
-#funds_sell_ctokens = [cdai//2, cusdc//2, usdt//2]
-funds_perturb_negative_ctokens = [0,0,0]
-
-#Conversion to underlying
-dai = CTokensToTokens(cdai,0)
-usdc = CTokensToTokens(cusdc,1)
-usdt = CTokensToTokens(usdt,2)
-current_values_underlying = [dai, usdc, usdt]
-iteration = 0
-
 seed(None)
 print('Started iteration')
+iteration = 0
 while True: 
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
     fraction_to_add = uniform(0, 1)
