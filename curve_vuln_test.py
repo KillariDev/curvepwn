@@ -360,7 +360,16 @@ print('Started iteration')
 iteration = 0
 while True: 
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
-    attack_balances_c_tokens = [cdai+int(funds_avail_ctokens[0]), cusdc+int(funds_avail_ctokens[1]), usdt+int(funds_avail_ctokens[2])]
+    current_dai_dollars = CTokensToDollars(current_ctokens[0], 0)
+    current_usdc_dollars = CTokensToDollars(current_ctokens[1], 1)
+    current_usdt_dollars = CTokensToDollars(current_ctokens[2], 2)
+    current_balances_dollars = [current_dai_dollars, current_usdc_dollars, current_usdt_dollars]
+    funds_avail_dollars = [CTokensToDollars(funds_avail_ctokens[0], 0), CTokensToDollars(funds_avail_ctokens[1], 1), CTokensToDollars(funds_avail_ctokens[2], 2)]
+    max_balance_dollars = max(current_balances_dollars)
+    max_funds_avail_dollars = max(funds_avail_dollars)
+    number = randint(max_balance_dollars, max_balance_dollars + max_funds_avail_dollars)
+    attack_balance_dollars = [number, number, number]
+    attack_balances_c_tokens = [DollarsToCTokens(number, 0), DollarsToCTokens(number, 1), DollarsToCTokens(number, 2)]
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0],0),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1],1),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2],2)]
