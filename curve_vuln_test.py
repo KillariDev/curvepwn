@@ -369,9 +369,9 @@ while True:
     #Create balances in TokensIncreasedPrecision with EQUAL AMOUNTS above what is currently in the pool
     #fraction_to_add = uniform(0, 1)
     #Test with relatively imbalanced target pool compositions
-    fraction_to_add_0 = uniform(0.6, 1.0)
-    fraction_to_add_1 = uniform(0.6, 1.0)
-    fraction_to_add_2 = uniform(0.6, 1.0)
+    fraction_to_add_0 = uniform(0.8, 1.0)
+    fraction_to_add_1 = uniform(0.8, 1.0)
+    fraction_to_add_2 = uniform(0.8, 1.0)
     attack_balances_c_tokens = [cdai+int(funds_avail_ctokens[0]*fraction_to_add_0), cusdc+int(funds_avail_ctokens[1]*fraction_to_add_1), usdt+int(funds_avail_ctokens[2]*fraction_to_add_2)]
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0],0),
                                         CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1],1),
