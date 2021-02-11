@@ -361,7 +361,6 @@ while True:
         file = open("invalidDs.txt", "a")
         file.write("Iteration " + str(iteration) + "\n")
         file.write("Invalid D found! \n")
-        file.write("Iteration ", iteration, "\n \n")
         file.write("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
         file.write("Invalid D: " + str(D) + "\n")
         file.write("U: " + str(u) + "\n")
