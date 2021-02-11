@@ -366,7 +366,7 @@ while True:
         performSwap(2, 0, usdt // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDT -> DAI test
         
         performSwap(1, 2, cusdc // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDC -> USDT test
-        performSwap(2, 1, usdtusdt // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
+        performSwap(2, 1, usdt // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
         
 
     iteration += 1
