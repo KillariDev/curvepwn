@@ -366,14 +366,14 @@ while True:
         file.write("U: " + str(u) + "\n")
         file.close()
         
-        performSwap(0, 1, cdai // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
-        performSwap(1, 0, cusdc // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDC -> DAI test
+        performSwap(0, 1, cdai // 10, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
+        performSwap(1, 0, cusdc // 10, attack_balances_c_tokens, current_ctokens) #USDC -> DAI test
        
-        performSwap(0, 2, cdai // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #DAI -> USDT test
-        performSwap(2, 0, usdt // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDT -> DAI test
+        performSwap(0, 2, cdai // 10, attack_balances_c_tokens, current_ctokens) #DAI -> USDT test
+        performSwap(2, 0, usdt // 10, attack_balances_c_tokens, current_ctokens) #USDT -> DAI test
         
-        performSwap(1, 2, cusdc // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDC -> USDT test
-        performSwap(2, 1, usdt // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
+        performSwap(1, 2, cusdc // 10, attack_balances_c_tokens, current_ctokens) #USDC -> USDT test
+        performSwap(2, 1, usdt // 10, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
         
 
     iteration += 1
