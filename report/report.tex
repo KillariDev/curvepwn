@@ -1,6 +1,83 @@
 \documentclass{article}
 
-\title{Potential critical vulnerability Curve based contracts}
+%Define the listing package
+\usepackage{listings} %code highlighter
+\usepackage{color} %use color
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+ 
+%Customize a bit the look
+\lstset{ %
+backgroundcolor=\color{white}, % choose the background color; you must add \usepackage{color} or \usepackage{xcolor}
+basicstyle=\footnotesize, % the size of the fonts that are used for the code
+breakatwhitespace=false, % sets if automatic breaks should only happen at whitespace
+breaklines=true, % sets automatic line breaking
+captionpos=b, % sets the caption-position to bottom
+commentstyle=\color{mygreen}, % comment style
+deletekeywords={...}, % if you want to delete keywords from the given language
+escapeinside={\%*}{*)}, % if you want to add LaTeX within your code
+extendedchars=true, % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+frame=single, % adds a frame around the code
+keepspaces=true, % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+keywordstyle=\color{blue}, % keyword style
+% language=Octave, % the language of the code
+morekeywords={*,...}, % if you want to add more keywords to the set
+numbers=left, % where to put the line-numbers; possible values are (none, left, right)
+numbersep=5pt, % how far the line-numbers are from the code
+numberstyle=\tiny\color{mygray}, % the style that is used for the line-numbers
+rulecolor=\color{black}, % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+showspaces=false, % show spaces everywhere adding particular underscores; it overrides 'showstringspaces'
+showstringspaces=false, % underline spaces within strings only
+showtabs=false, % show tabs within strings adding particular underscores
+stepnumber=1, % the step between two line-numbers. If it's 1, each line will be numbered
+stringstyle=\color{mymauve}, % string literal style
+tabsize=2, % sets default tabsize to 2 spaces
+title=\lstname % show the filename of files included with \lstinputlisting; also try caption instead of title
+}
+%END of listing package%
+ 
+\definecolor{darkgray}{rgb}{.4,.4,.4}
+\definecolor{purple}{rgb}{0.65, 0.12, 0.82}
+ 
+%define Javascript language
+\lstdefinelanguage{JavaScript}{
+keywords={typeof, new, true, false, catch, function, return, null, catch, switch, var, if, in, while, do, else, case, break},
+keywordstyle=\color{blue}\bfseries,
+ndkeywords={class, export, boolean, throw, implements, import, this},
+ndkeywordstyle=\color{darkgray}\bfseries,
+identifierstyle=\color{black},
+sensitive=false,
+comment=[l]{//},
+morecomment=[s]{/*}{*/},
+commentstyle=\color{purple}\ttfamily,
+stringstyle=\color{red}\ttfamily,
+morestring=[b]',
+morestring=[b]"
+}
+ 
+\lstset{
+language=JavaScript,
+extendedchars=true,
+basicstyle=\footnotesize\ttfamily,
+showstringspaces=false,
+showspaces=false,
+numbers=left,
+numberstyle=\footnotesize,
+numbersep=9pt,
+tabsize=2,
+breaklines=true,
+showtabs=false,
+captionpos=b
+}
+
+\setlength{\parindent}{0pt}
+
+\usepackage{amsfonts}
+
+\usepackage{parskip}
+
+\title{Potential critical vulnerability in Curve based contracts}
 \author{experience, Killari}
 
 \begin{document}
@@ -9,4 +86,60 @@
     \section{Overview}
 
     In this document, we describe what we believe constitutes a critical vulnerability in all of the the Curve pools contracts. Used by a malicious attacke, it could gradually empty the pool with a repeat attack.  Due to the way the Stableswap invariant is calculated, it is possible to add tokens to the liquidity pools up to precise values found to break the computation. This results in a deviation of the spot price from the expected price of $\sim 1$, \textit{even in the case of balanced pools.} The attacker can then arbitrage against that virtual pool to turn a profit and effectively steal from it in a single transaction. Attached to this report, we provide a collection of scripts used to find the values that break the invariant calculation, and a mainnet ready example of the exploit using Aave flash loans. 
+
+    \section{Theory}
+
+    In order to make the exploit as clear as possible, we recall the theory of the Stableswap invariant and the way it is implemented in the Curve contracts. Curve is a what has been referred to as a "constant function automated market maker", or CFMM for short. Given a pool $\vec{x}$ composed of $n$ tokens with respective balances $x_{i}$, a user requesting to swap some amount $\Delta x_{i}$ of tokens $i$ for tokens $j$ should be given an amount $\Delta x_{j}$ such that the following equality remains true with the updated balances: 
+
+    \begin{equation}
+        A n^{n} \sum x_{i}+D=A D n^{n}+\frac{D^{n+1}}{n^{n} \prod x_{i}}
+    \end{equation}
+
+    Where $A$ is a fixed parameter called the ``amplification factor''. As we can see, it is implied that this equality was true to begin with. In particular, this means that the equation was set with an appropriate value of $D$. This is because as implied in the Stableswap paper, a $D$ that breaks this equality wouldn not necessarily correspond to a spot price of $1$ when balances are close to each other. To do this, given an initial portfolio of tokens $\vec{x}$, we solve the equation $f(D) = 0$ where: 
+
+    \begin{equation}
+        f(D) = A n^{n} \sum x_{i}+D - A D n^{n} -\frac{D^{n+1}}{n^{n} \prod x_{i}}
+    \end{equation}
+
+    This is simply Equation 1 written differently. The Curve contract attempts to find an appropriate value of D by solving this equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
+
+    \begin{equation}
+        D_{n+1} = D_{n} - \frac{f(D_{n})}{f'(D_{n})}
+    \end{equation}
+
+    This is done until $\| D_{n+1} - D_{n} \| < \varepsilon$ with some user defined $\varepsilon$ precision. It can be shown that the method either converges to a root of the function, that is, a value of D verifying our equation, or does not converge. The number of steps it takes to converge (if it does) is variable. Below is an example implementation of that algorithm in the Curve contracts from \verb {StableSwapUSDT.vy{ : 
+
+    \begin{lstlisting}[language=Python]
+    def get_D(xp: uint256[N_COINS]) -> uint256:
+        S: uint256 = 0
+        for _x in xp:
+            S += _x
+        if S == 0:
+            return 0
+    
+        Dprev: uint256 = 0
+        D: uint256 = S
+        Ann: uint256 = self.A * N_COINS
+        for _i in range(255):
+            D_P: uint256 = D
+            for _x in xp:
+                D_P = D_P * D / (_x * N_COINS + 1)  # +1 is to prevent /0
+            Dprev = D
+            D = (Ann * S + D_P * N_COINS) * D / ((Ann - 1) * D + (N_COINS + 1) * D_P)
+            # Equality with the precision of 1
+            if D > Dprev:
+                if D - Dprev <= 1:
+                    break
+            else:
+                if Dprev - D <= 1:
+                    break
+        return D
+    \end{lstlisting}
+
+    As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$ that is not possible, but we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
+
+    Our attack consists in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$, \textit{and} such that the spot price at these balances deviates significantly enough from $1$. We can thus do risk-free ``virtual arbitrage'' between that new pool and the original pool in a single transaction, which could gradually empty the pool if repeated enough times.
+
+    \section{Step-by-step description of the attack}
+
 \end{document}
