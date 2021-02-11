@@ -358,6 +358,9 @@ while True:
     if abs(u) > 0:
         print("Invalid D found! \n")
         print("Iteration ", iteration, "\n \n")
+        print("Composition of the pool returning an invalid D in cTokens: " + str(attack_balances_c_tokens[0]) + " cDAI, " + str(attack_balances_c_tokens[1]) + " cUSDC, " + str(attack_balances_c_tokens[2]) + " USDT\n")
+        print("Invalid D: " + str(D) + "\n")
+        print("U: " + str(u) + "\n")
         
         performSwap(0, 1, cdai // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #DAI -> USDC test
         performSwap(1, 0, cusdc // 10, amount_in_ctoken, attack_balances_c_tokens, current_ctokens) #USDC -> DAI test
