@@ -342,7 +342,7 @@ while True:
         amount_usdc_out_underlying = CTokensToTokens(amount_usdc_out_ctokens,1)
         #If we get more than 1.03 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
 
-        if TokensToDollars(amount_usdc_out_underlying,1) > 1.03*TokensToDollars(amount_dai_in_underlying,0):
+        if TokensToDollars(amount_usdc_out_underlying,1) > 1.01*TokensToDollars(amount_dai_in_underlying,0):
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Iteration " + str(iteration) + "\n \n")
@@ -369,7 +369,7 @@ while True:
         #Convert to the corresponding amount of Token
         amount_dai_out_underlying = CTokensToTokens(amount_dai_out_ctokens,0)
         #If we get more than 1.05 tokens out for each token in, save the amounts required for the attack and the discrepancy in effective price
-        if TokensToDollars(amount_dai_out_underlying,0) > 1.03*TokensToDollars(amount_usdc_in_underlying,1):
+        if TokensToDollars(amount_dai_out_underlying,0) > 1.01*TokensToDollars(amount_usdc_in_underlying,1):
             print("Solution found!")
             file = open("D_based_attack_solutions.txt", "a")
             file.write("Iteration " + str(iteration) + "\n \n")
