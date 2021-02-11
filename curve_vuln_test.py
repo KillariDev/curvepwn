@@ -305,7 +305,7 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
     amount_out_underlying = CTokensToTokens(amount_out_ctokens,j)
     #If we get more than 1.03 USDC for each DAI, save the amounts required for the attack and the discrepancy in effective price
 
-    if TokensToDollars(amount_out_underlying,j) > 1.00*TokensToDollars(amount_in_underlying,i):
+    if TokensToDollars(amount_out_underlying,j) > 1.01*TokensToDollars(amount_in_underlying,i):
         print("Solution found!")
         file = open("D_based_attack_solutions.txt", "a")
         file.write("Iteration " + str(iteration) + "\n")
