@@ -269,7 +269,6 @@ if False:
 # 6/ For later: need to remove liquidity to pay back the flash loan so we'll need to code the remove_liquidity function to test it to the end but I think proving that we can swap with a broken spot price is enough
 
 #Read by the attack contract from Compound
-rates = [210610623344836502016616268, 215836695449259000000000000, 1000000000000000000000000000000]
 PRECISION_MUL = [1, 1000000000000, 1000000000000]
 
 #Read from Etherscan for the USDT pool
@@ -323,15 +322,29 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
         print("...")
         file.close()
 
-#Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
-funds_avail = [100000000*10**18, 100000000*10**6, 100000000*10**6]
-funds_avail_ctokens = [TokensToCTokens(funds_avail[0],0), TokensToCTokens(funds_avail[1],1), TokensToCTokens(funds_avail[2],2)]
+##########################
+####MINING PARAMETERS#####
+##########################
 
-#Current amounts of cDAI, cUSDC and USDT in the pool and conversion into DAI and USDC amounts
-cdai = 1497583531010282
-cusdc = 3258032451817647
-usdt = 40550284699
-current_ctokens = [cdai, cusdc, usdt]
+blockNumber = 11835041
+current_ctokens = [ 2236520561601012 ,  3481287597858764 ,  200709219245 ]
+LoanAmounts = [ 50000000000000000000000 ,  50000000000 ,  50000000000 ]
+funds_avail_ctokens = [ 237304379030216 ,  231568379371944 ,  50000000000 ]
+rates = [ 210699862363827219541686685 ,  215918944268682000000000000 ,  1000000000000000000000000000000 ]
+
+##########################
+##########################
+##########################
+
+#Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
+#funds_avail = [500000*10**18, 500000*10**6, 500000*10**6]
+#funds_avail_ctokens = [TokensToCTokens(funds_avail[0],0), TokensToCTokens(funds_avail[1],1), TokensToCTokens(funds_avail[2],2)]#Funds available in DAI(18 decimals), USDC (6 decimals), USDT (6 decimals). Assume 100M of each. 
+
+
+cdai = current_ctokens[0]
+cusdc = current_ctokens[1]
+usdt = current_ctokens[2]
+
 
 #funds_sell_ctokens = [cdai//2, cusdc//2, usdt//2]
 funds_perturb_negative_ctokens = [0,0,0]
