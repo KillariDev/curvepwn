@@ -131,7 +131,7 @@ def AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens):
     (amounts,fees,D1,new_token_supply,mint_amount,new_balances) = solver.add_liquidity(attackAdd, totalSupply, current_ctokens,fee, rates, admin_fee, amp)
 
     #take away
-    (self_balances,amounts,new_balances) = solver.remove_liquidity(mint_amount, [0,0,0], new_balances, new_token_supply)
+    (new_balances,amounts,new_token_supply) = solver.remove_liquidity(mint_amount, [0,0,0], new_balances, new_token_supply)
     
     fundsIn = sum([CTokensToDollars(attackAdd[i],i) for i in range(N_COINS)])
     fundsOut = sum([CTokensToDollars(amounts[i],i) for i in range(N_COINS)])
