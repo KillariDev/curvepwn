@@ -125,7 +125,7 @@ def performSwap(i,j, amount_in_ctoken, attack_balances_c_tokens, current_ctokens
         file.close()
 
 def AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens):
-    attackAdd = [attack_balances_c_tokens[0]-current_ctokens[0], attack_balances_c_tokens[1]-current_ctokens[1], attack_balances_c_tokens[2]-current_ctokens[2]]
+    attackAdd = [attack_balances_c_tokens[i]-current_ctokens[i] for i in range(N_COINS)]
     
     #put liquidity
     (amounts,fees,D1,new_token_supply,mint_amount,new_balances) = solver.add_liquidity(attackAdd, totalSupply, current_ctokens,fee, rates, admin_fee, amp)
@@ -136,13 +136,37 @@ def AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens):
     fundsIn = sum([CTokensToDollars(attackAdd[i],i) for i in range(N_COINS)])
     fundsOut = sum([CTokensToDollars(amounts[i],i) for i in range(N_COINS)])
     if(fundsOut > fundsIn*1.01):
-        print("Solution found!")
+        print("Solution found! AddRemove")
         file = open("AddRemoveLiquidityAttack.txt", "a")
         file.write("Solution found! AddRemove\n")
         file.write("Add\n")
         file.write(str(attackAdd[0])+', '+str(attackAdd[1])+', '+str(attackAdd[2])+'\n')
         file.write("remove\n")
         file.write(str(mint_amount) +'\n')
+        file.write("profit\n")
+        file.write(str(fundsIn/fundsOut) + '\n')
+        file.write('\n')
+        file.close()
+        
+    #try half half
+    attackAdd = [(attack_balances_c_tokens[i]-current_ctokens[i])/2 for i in range(N_COINS)]
+    
+    #put liquidity
+    (amounts,fees,D1,new_token_supply,first_mint,new_balances) = solver.add_liquidity(attackAdd, totalSupply, current_ctokens,fee, rates, admin_fee, amp)
+    (amounts,fees,D1,new_token_supply,second_mint,new_balances) = solver.add_liquidity(attackAdd, new_token_supply, new_balances,fee, rates, admin_fee, amp)
+    #take away
+    (new_balances,amounts,new_token_supply) = solver.remove_liquidity(first_mint+second_mint, [0,0,0], new_balances, new_token_supply)
+    
+    fundsIn = sum([CTokensToDollars(attackAdd[i]*2,i) for i in range(N_COINS)])
+    fundsOut = sum([CTokensToDollars(amounts[i],i) for i in range(N_COINS)])
+    if(fundsOut > fundsIn*1.01):
+        print("Solution found! AddRemoveHalf")
+        file = open("AddRemoveLiquidityAttack.txt", "a")
+        file.write("Solution found! AddRemoveHalf\n")
+        file.write("Add\n")
+        file.write(str(attackAdd[0]*2)+', '+str(attackAdd[1]*2)+', '+str(attackAdd[2]*2)+'\n')
+        file.write("remove\n")
+        file.write(str(first_mint+second_mint) +'\n')
         file.write("profit\n")
         file.write(str(fundsIn/fundsOut) + '\n')
         file.write('\n')
