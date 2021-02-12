@@ -136,6 +136,7 @@ def AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens):
     fundsIn = sum([CTokensToDollars(attackAdd[i],i) for i in range(N_COINS)])
     fundsOut = sum([CTokensToDollars(amounts[i],i) for i in range(N_COINS)])
     if(fundsOut > fundsIn*1.01):
+        print("Solution found!")
         file = open("AddRemoveLiquidityAttack.txt", "a")
         file.write("Solution found! AddRemove\n")
         file.write("Add\n")
