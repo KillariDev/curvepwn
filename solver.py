@@ -45,7 +45,6 @@ def get_D(xp, amp):
     # convergence typically occurs in 4 rounds or less, this should be unreachable!
     # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
     return D
-
 def get_I(xp, amp):
     S = 0
 
@@ -82,6 +81,28 @@ def _xp(current_balances, rates):
     for i in range(N_COINS):
         result[i] = result[i] * current_balances[i] // PRECISION
     return result
+
+def _xp_mem(rates, _balances):
+    result= rates.copy()
+    for i in range(N_COINS):
+        result[i] = result[i] * _balances[i] // PRECISION
+    return result
+
+def USDTpool(xp, amp, D):
+    '''
+    Return f(D), takes xp in TokenPrecision units
+    '''
+    #amp is already A*n**(n-1)
+    Ann = amp*N_COINS
+    S = 0
+    for _x in xp:
+        S += _x
+    if S == 0:
+        return 0
+    P = 1 #product of xi
+    for _x in xp:
+        P*= _x
+    return Ann*S + (1-Ann)*D - (D**(N_COINS+1))/((N_COINS**N_COINS)*P)
 
 def get_y(i, j, x, _xp, amp):
     '''
@@ -173,4 +194,77 @@ def _exchange(i, j, xp, dx, rates, fee, amp):
     _dy = (dy - dy_fee) * PRECISION // rates[j]
 
     return _dy
+    
+def remove_liquidity(_amount, min_amounts, balances, total_supply):
+    amounts = [0,0,0]
+    new_balances = balances.copy()
+    for i in range(N_COINS):
+        value = balances[i] * _amount // total_supply
+        if(value < min_amounts[i]):
+            raise Exception("Withdrawal resulted in fewer coins than expected")
+        new_balances[i] -= value
+        amounts[i] = value
+
+    return(new_balances,amounts,total_supply-_amount)
      
+def get_D_mem(rates, _balances,amp):
+    return get_D(_xp_mem(rates, _balances),amp)
+ 
+def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee, amp):
+    # Amounts is amounts of c-tokens
+
+    fees= [0,0,0]
+    _fee = fee * N_COINS // (4 * (N_COINS - 1))
+    _admin_fee = admin_fee
+
+    token_supply =totalSupply
+    # Initial invariant
+    D0 = 0
+    balances = balances_c_tokens.copy()
+    old_balances= balances_c_tokens.copy()
+    if token_supply > 0:
+        D0 = get_D_mem(rates, old_balances, amp)
+    new_balances = old_balances
+
+    for i in range(N_COINS):
+        if token_supply == 0:
+            if(amounts[i] <= 0):
+                raise Exception("assert amounts[i] > 0")
+        # balances store amounts of c-tokens
+        new_balances[i] = old_balances[i] + amounts[i]
+
+    # Invariant after change
+    D1 = get_D_mem(rates, new_balances, amp)
+    if(D1 <= D0):
+        print(D0)
+        print(D1)
+        raise Exception("assert D1 > D0")
+
+    # We need to recalculate the invariant accounting for fees
+    # to calculate fair user's share
+    D2 = D1
+    if token_supply > 0:
+        # Only account for fees if we are not the first to deposit
+        for i in range(N_COINS):
+            ideal_balance = D1 * old_balances[i] // D0
+            difference = 0
+            if ideal_balance > new_balances[i]:
+                difference = ideal_balance - new_balances[i]
+            else:
+                difference = new_balances[i] - ideal_balance
+            fees[i] = _fee * difference // FEE_DENOMINATOR
+            balances[i] = new_balances[i] - fees[i] * _admin_fee // FEE_DENOMINATOR
+            new_balances[i] -= fees[i]
+        D2 = get_D_mem(rates, new_balances, amp)
+    else:
+        balances = new_balances
+
+    # Calculate, how much pool tokens to mint
+    mint_amount = 0
+    if token_supply == 0:
+        mint_amount = D1  # Take the dust if there was any
+    else:
+        mint_amount = token_supply * (D2 - D0) // D0
+
+    # Mint pool tokens
+    return(amounts,fees,D1,token_supply + mint_amount,mint_amount,balances)
