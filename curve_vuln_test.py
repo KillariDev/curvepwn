@@ -234,7 +234,9 @@ while True:
         performSwap(2, 1, usdt // 10, attack_balances_c_tokens, current_ctokens) #USDT -> USDC test
         
         ##add & withdraw
-        AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens)
-     
+        try:
+            AddRemoveLiquidityAttack(attack_balances_c_tokens,current_ctokens)
+        except:
+            print('exception')
 
     iteration += 1
