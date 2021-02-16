@@ -37,6 +37,23 @@ PRECISION_MUL = [1, 1000000000000, 1000000000000]
 fee = 4000000
 admin_fee = 5000000000 
 
+#Expression of the invariant of the USDT pool in the contract code
+def USDTpool(xp, amp, D):
+    '''
+    Return f(D), takes xp in TokenPrecision units
+    '''
+    #amp is already A*n**(n-1)
+    Ann = amp*N_COINS
+    S = 0
+    for _x in xp:
+        S += _x
+    if S == 0:
+        return 0
+    P = 1 #product of xi
+    for _x in xp:
+        P*= _x
+    return Ann*S + (1-Ann)*D - (D**(N_COINS+1))/((N_COINS**N_COINS)*P)
+
 def TokensToCTokens(amount, index):
     return amount*PRECISION//(rates[index]//PRECISION_MUL[index])
 
@@ -175,8 +192,15 @@ while(False):
 #Test: find invalid D for very unbalanced pool, trade on that pool and then trade back. 
 while True: 
 
+    #Assume 20M of each token available to be able to test many configurations 
+    funds_avail_ctokens = [DollarsToCTokens(20000000, i) for i in range(N_COINS)]
+
+    resetBalances()
+
+    our_initial_balance = funds_avail_ctokens
+
     #Current balance of the USDT pool in CTokens
-    current_ctokens = []
+
     cdai = current_ctokens[0]
     cusdc = current_ctokens[1]
     cusdt = current_ctokens[2]
@@ -202,21 +226,34 @@ while True:
     #If D doesn't verify the invariant relationship
     if abs(u) > 0:
 
+        #Find liquidity to add to get the invalid D found
+
+        liquidityToAdd = [attack_balances_c_tokens[i] - current_ctokens[i] for i in range(N_COINS)]
+
         #Add liquidity into the original pool to get to the exact attack balances found 
+
+        simAddLiquidity(liquidityToAdd)
 
         #Perform a swap of 40% the original amount of (c)DAI for (c)USDC into that new pool
 
+        #Get amount in
         amountToTradeCDAI = int(cdai*0.4)
 
-        #Simulate trade
+        #Get the amount out before changing the state of the pool
+        amountOutCUSDC = solver._exchange(0, 1, current_ctokens, amountToTradeCDAI, rates, fee, amp)
 
-        amoutOutCUSDC = 0
+        #Change state of the pool
+        simTrade(0, 1, amountToTradeCDAI) #Doesn't currently calculate the new D?
 
         #Trade the exact amount of (c)USDC obtained back to DAI
 
-        amountBackCDAI = 0
+        amountBackCDAI = solver._exchange(1, 0, contract_balance, amountOutCUSDC, rates, fee, amp)
+
+        simTrade(1, 0, amountOutCUSDC)
 
         if (amountBackCDAI > 1.01*amountToTradeCDAI):
+
+            print("Solution found!")
 
             #Save solution found
 
