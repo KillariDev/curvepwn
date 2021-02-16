@@ -83,8 +83,8 @@ funds_avail_ctokens = [ 71986950757698170 ,  70250803567106466 ,  21094498755517
 rates = [ 210903268827652604936428979 ,  216115143722780000000000000 ,  1000000000000000000000000000000 ]
 addLiquidity = [ 71986950757698170 ,  70250803567106466 ,  21094498755517 ]
 
-contract_poolTokens = 0;
-our_poolTokens = 0;
+contract_poolTokens = 0
+our_poolTokens = 0
 our_balance = []
 contract_balance = []
 
@@ -117,7 +117,7 @@ def simTrade(i, j, dx):
 
 seed(None)
 
-bestProfit = 0;
+bestProfit = 0
 while(True):
     resetBalances()
     our_initial_balance = funds_avail_ctokens
