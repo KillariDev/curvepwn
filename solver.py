@@ -195,6 +195,51 @@ def _exchange(i, j, xp, dx, rates, fee, amp):
 
     return _dy
     
+def _exchangeWithUpdate(i, j, dx, rates, fee, amp, balances, admin_fee):
+    '''
+    See Curve USDT pool contract line 425
+    i = index of token in
+    j = index of token out 
+    xp = current balances
+    dx = amount in (in cTokens)
+    rates = current exchange rate of cTokens to Tokens
+    returns: dy = amount out (in cTokens)
+    '''
+    # dx and dy are in c-tokens
+
+    xp = _xp(balances.copy(), rates)
+
+    x = xp[i] + dx * rates[i] // PRECISION
+    y = get_y(i, j, x, xp, amp)
+    dy = xp[j] - y
+    dy_fee = dy * fee // FEE_DENOMINATOR
+
+    #Updates the balances, not needed to look for an appropriate dx
+    dy_admin_fee = dy_fee * admin_fee // FEE_DENOMINATOR
+    new_balances = balances.copy()
+    new_balances[i] = x * PRECISION // rates[i]
+    new_balances[j] = (y + (dy_fee - dy_admin_fee)) * PRECISION // rates[j]
+    
+    if(new_balances[i] < 0):
+        raise 'traded too much'
+    if(new_balances[j] < 0):
+        raise 'traded too much'
+    
+    _dy = (dy - dy_fee) * PRECISION // rates[j]
+
+    return (new_balances,_dy)
+
+def exchange(i, j, dx, rates, fee, amp, balances, ourFunds, admin_fee):
+    (new_balances,dy) = _exchangeWithUpdate(i, j, dx, rates, fee, amp, balances, admin_fee)
+
+    ourFunds[i] -= dx
+    if(ourFunds[i]<0):
+        raise 'traded too much'
+      
+    ourFunds[j] += dy
+    return (ourFunds,new_balances)
+
+
 def remove_liquidity(_amount, min_amounts, balances, total_supply):
     amounts = [0,0,0]
     new_balances = balances.copy()
@@ -236,8 +281,6 @@ def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee,
     # Invariant after change
     D1 = get_D_mem(rates, new_balances, amp)
     if(D1 <= D0):
-        print(D0)
-        print(D1)
         raise Exception("assert D1 > D0")
 
     # We need to recalculate the invariant accounting for fees
