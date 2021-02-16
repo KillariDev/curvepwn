@@ -118,7 +118,7 @@ def simTrade(i, j, dx):
 seed(None)
 
 bestProfit = 0
-while(True):
+while(False):
     resetBalances()
     our_initial_balance = funds_avail_ctokens
     fundsIn = sum([CTokensToDollars(our_initial_balance[i],i) for i in range(N_COINS)])
@@ -171,3 +171,53 @@ while(True):
         exit()
     except:
         continue
+
+#Test: find invalid D for very unbalanced pool, trade on that pool and then trade back. 
+while True: 
+
+    #Current balance of the USDT pool in CTokens
+    current_ctokens = []
+    cdai = current_ctokens[0]
+    cusdc = current_ctokens[1]
+    cusdt = current_ctokens[2]
+
+    #For easily understandable adjustments
+    attack_balances_usd = [1000000,10000000,5000000]
+
+    #Convert to CTokens
+    attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
+
+    #Perturb to find an invalid D
+    attack_balances_c_tokens = [uniform(0.8,1)*attack_balances_c_tokens[0], uniform(0.8,1)*attack_balances_c_tokens[1], uniform(0.8,1)*attack_balances_c_tokens[2]]
+
+    #Convert to TokensPrecision
+    attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0], 0), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1], 1), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2], 2)]
+
+    #Get D for this pool composition
+    D = solver.get_D(attack_balances_tokens_precision, amp)
+    
+    #Check if the D found breaks the invariant
+    u = USDTpool(attack_balances_tokens_precision, amp, D)
+
+    #If D doesn't verify the invariant relationship
+    if abs(u) > 0:
+
+        #Add liquidity into the original pool to get to the exact attack balances found 
+
+        #Perform a swap of 40% the original amount of (c)DAI for (c)USDC into that new pool
+
+        amountToTradeCDAI = int(cdai*0.4)
+
+        #Simulate trade
+
+        amoutOutCUSDC = 0
+
+        #Trade the exact amount of (c)USDC obtained back to DAI
+
+        amountBackCDAI = 0
+
+        if (amountBackCDAI > 1.01*amountToTradeCDAI):
+
+            #Save solution found
+
+            #LATER: Withdraw liquidity and do absolute profit calculations, but if we find a case where we get 1% more out than we put in it's already good enough
