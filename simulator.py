@@ -205,7 +205,7 @@ while True:
     cusdt = current_ctokens[2]
 
     #For easily understandable adjustments
-    attack_balances_usd = [1000000,10000000,5000000]
+    attack_balances_usd = [800000,10000000,700000]
 
     #Convert to CTokens
     attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
@@ -236,7 +236,7 @@ while True:
             #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
 
             #Get amount in
-            amountToTradeCUSDC = int(cusdc*0.4)
+            amountToTradeCUSDC = int(1.5*cusdc)
 
             #Get the amount out before changing the state of the pool
             amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
@@ -283,7 +283,7 @@ while True:
                 simRemoveLiquidity(our_poolTokens)
                 fundsOut = sum([CTokensToDollars(our_balance[i],i) for i in range(N_COINS)])
                 profit = fundsOut-fundsIn
-                file.write("profit: " + str(profit) + "$\n")
+                file.write("Profit: " + str(profit) + "$\n")
                 
                 file.write("\n_____________________________________________________________ \n \n")
                 
