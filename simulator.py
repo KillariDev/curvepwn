@@ -205,13 +205,13 @@ while True:
     cusdt = current_ctokens[2]
 
     #For easily understandable adjustments
-    attack_balances_usd = [800000,10000000,700000]
+    attack_balances_usd = [300000,900000,600000]
 
     #Convert to CTokens
     attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
 
     #Perturb to find an invalid D
-    attack_balances_c_tokens = [int(uniform(0.8,1)*attack_balances_c_tokens[0]), int(uniform(0.8,1)*attack_balances_c_tokens[1]), int(uniform(0.8,1)*attack_balances_c_tokens[2])]
+    attack_balances_c_tokens = [int(uniform(0.8,1)*attack_balances_c_tokens[0]), int(uniform(0.8,1)*attack_balances_c_tokens[1]), int(uniform(0.99,1)*attack_balances_c_tokens[2])]
 
     #Convert to TokensPrecision
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0], 0), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1], 1), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2], 2)]
@@ -236,7 +236,7 @@ while True:
             #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
 
             #Get amount in
-            amountToTradeCUSDC = int(1.5*cusdc)
+            amountToTradeCUSDC = int(0.29*cusdc)
 
             #Get the amount out before changing the state of the pool
             amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
