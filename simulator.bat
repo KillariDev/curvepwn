@@ -1,0 +1,1 @@
+python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py | python simulator.py 

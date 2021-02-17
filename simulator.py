@@ -190,6 +190,7 @@ while(False):
         continue
 
 #Test: find invalid D for very unbalanced pool, trade on that pool and then trade back. 
+iteration = 0
 while True: 
 
     #Assume 20M of each token available to be able to test many configurations 
@@ -251,10 +252,34 @@ while True:
 
         simTrade(1, 0, amountOutCUSDC)
 
-        if (amountBackCDAI > 1.01*amountToTradeCDAI):
+        # if iteration % 1000000 == 0:
+        #     file = open("check_cdai_in_out.txt", "a")
+        #     file.write("CDAI in: " + str(amountToTradeCDAI) + "\n")
+        #     file.write("CDAI out " + str(amountBackCDAI) + "\n")
+        #     if amountBackCDAI > amountToTradeCDAI:
+        #         file.write("OUT/IN: " + str(amountBackCDAI/amountToTradeCDAI) + "\n \n")
+        #     elif amountToTradeCDAI > amountBackCDAI: 
+        #         file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n \n")
+        #     file.close()
+
+        if (amountBackCDAI > 1.009*amountToTradeCDAI or amountToTradeCDAI > 1.009*amountBackCDAI):
 
             print("Solution found!")
 
             #Save solution found
 
+            file = open("back_and_forth_trade.txt", "a")
+            file.write("Solution found! \n")
+            if amountBackCDAI > amountToTradeCDAI:
+                file.write("OUT/IN: " + str(amountBackCDAI/amountToTradeCDAI) + "\n")
+            elif amountToTradeCDAI > amountBackCDAI: 
+                file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n")
+            file.write("Required attack balances: \n \n")
+            file.write("CDAI: " + str(attack_balances_c_tokens[0]) + "\n")
+            file.write("CUSDC: " + str(attack_balances_c_tokens[1]) + "\n")
+            file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n _____________________________________________________________ \n \n")
+            file.close()
+
             #LATER: Withdraw liquidity and do absolute profit calculations, but if we find a case where we get 1% more out than we put in it's already good enough
+        
+        iteration += 1 
