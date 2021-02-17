@@ -205,7 +205,7 @@ while True:
     cusdt = current_ctokens[2]
 
     #For easily understandable adjustments
-    attack_balances_usd = [300000,900000,600000]
+    attack_balances_usd = [500000,2000000,600000]
 
     #Convert to CTokens
     attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
@@ -224,74 +224,84 @@ while True:
 
     #If D doesn't verify the invariant relationship
     if abs(u) > 0:
-        try:
-            #Find liquidity to add to get the invalid D found
+        #try:
+        #Find liquidity to add to get the invalid D found
 
-            liquidityToAdd = [attack_balances_c_tokens[i] - current_ctokens[i] for i in range(N_COINS)]
+        liquidityToAdd = [attack_balances_c_tokens[i] - current_ctokens[i] for i in range(N_COINS)]
 
-            #Add liquidity into the original pool to get to the exact attack balances found 
+        #Add liquidity into the original pool to get to the exact attack balances found 
 
-            simAddLiquidity(liquidityToAdd)
+        simAddLiquidity(liquidityToAdd)
 
-            #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
+        #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
 
-            #Get amount in
-            amountToTradeCUSDC = int(0.29*cusdc)
+        #Get amount in
+        amountToTradeCUSDC = int(0.6*cusdc)
 
-            #Get the amount out before changing the state of the pool
-            amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
+        #Get the amount out before changing the state of the pool
+        amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
 
-            #Change state of the pool
-            simTrade(1, 0, amountToTradeCUSDC) 
+        #Change state of the pool
+        simTrade(1, 0, amountToTradeCUSDC) 
 
-            #Trade the exact amount of (c)DAI obtained back to (c)USDC
+        #Trade the exact amount of (c)DAI obtained back to (c)USDC
 
-            amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
+        amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
 
-            simTrade(0, 1, amountOutCDAI)
+        simTrade(0, 1, amountOutCDAI)
 
-            # if iteration % 1000000 == 0:
-            #     file = open("check_cdai_in_out.txt", "a")
-            #     file.write("CDAI in: " + str(amountToTradeCDAI) + "\n")
-            #     file.write("CDAI out " + str(amountBackCDAI) + "\n")
-            #     if amountBackCDAI > amountToTradeCDAI:
-            #         file.write("OUT/IN: " + str(amountBackCDAI/amountToTradeCDAI) + "\n \n")
-            #     elif amountToTradeCDAI > amountBackCDAI: 
-            #         file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n \n")
-            #     file.close()
+        # if iteration % 1000000 == 0:
+        #     file = open("check_cdai_in_out.txt", "a")
+        #     file.write("CDAI in: " + str(amountToTradeCDAI) + "\n")
+        #     file.write("CDAI out " + str(amountBackCDAI) + "\n")
+        #     if amountBackCDAI > amountToTradeCDAI:
+        #         file.write("OUT/IN: " + str(amountBackCDAI/amountToTradeCDAI) + "\n \n")
+        #     elif amountToTradeCDAI > amountBackCDAI: 
+        #         file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n \n")
+        #     file.close()
 
-            if (amountBackCUSDC > 1.009*amountToTradeCUSDC or amountToTradeCUSDC > 1.009*amountBackCUSDC):
+        if (amountBackCUSDC > 1.009*amountToTradeCUSDC or amountToTradeCUSDC > 1.009*amountBackCUSDC):
 
-                print("Solution found!")
-                
-                #Save solution found
+            print("Solution found!")
+            #Redo the same attack 10 times
+            for i in range(10):
+                #Add liquidity to get back to the attack balances
+                liquidityToAdd = [attack_balances_c_tokens[i] - contract_balance[i] for i in range(N_COINS)]
+                simAddLiquidity(liquidityToAdd)
+                amountToTradeCUSDC = int(0.6*cusdc)
+                amountOutCDAI = solver._exchange(1, 0, contract_balance, amountToTradeCUSDC, rates, fee, amp)
+                simTrade(1, 0, amountToTradeCUSDC) 
+                amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
+                simTrade(0, 1, amountOutCDAI)
+            
+            #Save solution found
 
-                file = open("unbalanced_back_and_forth_trade_attack.txt", "a")
-                file.write("Solution found! Swap CUSDC to CDAI back to CUSDC \n")
-                if amountBackCUSDC > amountToTradeCUSDC:
-                    file.write("OUT/IN: " + str(amountBackCUSDC/amountToTradeCUSDC) + "\n \n")
-                elif amountToTradeCUSDC > amountBackCUSDC: 
-                    file.write("IN/OUT: " + str(amountToTradeCUSDC/amountBackCUSDC) + "\n \n")
-                file.write("Required attack balances: \n \n")
-                file.write("CDAI: " + str(attack_balances_c_tokens[0]) + "\n")
-                file.write("CUSDC: " + str(attack_balances_c_tokens[1]) + "\n")
-                file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n \n")
-                file.write("Amounts to add: \n \n")
-                file.write("CDAI: " + str(liquidityToAdd[0]) + "\n")
-                file.write("CUSDC: " + str(liquidityToAdd[1]) + "\n") 
-                file.write("USDT: " + str(liquidityToAdd[2]) + "\n") 
-                simRemoveLiquidity(our_poolTokens)
-                fundsOut = sum([CTokensToDollars(our_balance[i],i) for i in range(N_COINS)])
-                profit = fundsOut-fundsIn
-                file.write("Profit: " + str(profit) + "$\n")
-                
-                file.write("\n_____________________________________________________________ \n \n")
-                
-                file.close()
+            file = open("unbalanced_back_and_forth_trade_attack.txt", "a")
+            file.write("Solution found! Swap CUSDC to CDAI back to CUSDC \n")
+            if amountBackCUSDC > amountToTradeCUSDC:
+                file.write("OUT/IN: " + str(amountBackCUSDC/amountToTradeCUSDC) + "\n \n")
+            elif amountToTradeCUSDC > amountBackCUSDC: 
+                file.write("IN/OUT: " + str(amountToTradeCUSDC/amountBackCUSDC) + "\n \n")
+            file.write("Required attack balances: \n \n")
+            file.write("CDAI: " + str(attack_balances_c_tokens[0]) + "\n")
+            file.write("CUSDC: " + str(attack_balances_c_tokens[1]) + "\n")
+            file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n \n")
+            file.write("Amounts to add: \n \n")
+            file.write("CDAI: " + str(liquidityToAdd[0]) + "\n")
+            file.write("CUSDC: " + str(liquidityToAdd[1]) + "\n") 
+            file.write("USDT: " + str(liquidityToAdd[2]) + "\n") 
+            simRemoveLiquidity(our_poolTokens)
+            fundsOut = sum([CTokensToDollars(our_balance[i],i) for i in range(N_COINS)])
+            profit = fundsOut-fundsIn
+            file.write("Profit: " + str(profit) + "$\n")
+            
+            file.write("\n_____________________________________________________________ \n \n")
+            
+            file.close()
 
                 #LATER: Withdraw liquidity and do absolute profit calculations, but if we find a case where we get 1% more out than we put in it's already good enough
-        except KeyboardInterrupt:
-            exit()
-        except:
-            continue    
+        # except KeyboardInterrupt:
+        #     exit()
+        # except:
+        #     continue    
         iteration += 1 
