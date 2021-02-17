@@ -7,6 +7,7 @@ __pycache__
 #Output of solutions mining
 D_based_attack_solutions.txt
 invalidDs.txt
+unbalanced_back_and_forth_trade_attack.txt
 
 #LaTeX compilation files
 /report/report.aux

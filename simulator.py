@@ -213,7 +213,7 @@ while True:
     attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
 
     #Perturb to find an invalid D
-    attack_balances_c_tokens = [uniform(0.8,1)*attack_balances_c_tokens[0], uniform(0.8,1)*attack_balances_c_tokens[1], uniform(0.8,1)*attack_balances_c_tokens[2]]
+    attack_balances_c_tokens = [int(uniform(0.8,1)*attack_balances_c_tokens[0]), int(uniform(0.8,1)*attack_balances_c_tokens[1]), int(uniform(0.8,1)*attack_balances_c_tokens[2])]
 
     #Convert to TokensPrecision
     attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0], 0), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1], 1), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2], 2)]
@@ -235,22 +235,22 @@ while True:
 
         simAddLiquidity(liquidityToAdd)
 
-        #Perform a swap of 40% the original amount of (c)DAI for (c)USDC into that new pool
+        #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
 
         #Get amount in
-        amountToTradeCDAI = int(cdai*0.4)
+        amountToTradeCUSDC = int(cusdc*0.4)
 
         #Get the amount out before changing the state of the pool
-        amountOutCUSDC = solver._exchange(0, 1, current_ctokens, amountToTradeCDAI, rates, fee, amp)
+        amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
 
         #Change state of the pool
-        simTrade(0, 1, amountToTradeCDAI) #Doesn't currently calculate the new D?
+        simTrade(1, 0, amountToTradeCUSDC) 
 
-        #Trade the exact amount of (c)USDC obtained back to DAI
+        #Trade the exact amount of (c)DAI obtained back to (c)USDC
 
-        amountBackCDAI = solver._exchange(1, 0, contract_balance, amountOutCUSDC, rates, fee, amp)
+        amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
 
-        simTrade(1, 0, amountOutCUSDC)
+        simTrade(0, 1, amountOutCDAI)
 
         # if iteration % 1000000 == 0:
         #     file = open("check_cdai_in_out.txt", "a")
@@ -262,22 +262,26 @@ while True:
         #         file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n \n")
         #     file.close()
 
-        if (amountBackCDAI > 1.009*amountToTradeCDAI or amountToTradeCDAI > 1.009*amountBackCDAI):
+        if (amountBackCUSDC > 1.009*amountToTradeCUSDC or amountToTradeCUSDC > 1.009*amountBackCUSDC):
 
             print("Solution found!")
 
             #Save solution found
 
-            file = open("back_and_forth_trade.txt", "a")
-            file.write("Solution found! \n")
-            if amountBackCDAI > amountToTradeCDAI:
-                file.write("OUT/IN: " + str(amountBackCDAI/amountToTradeCDAI) + "\n")
-            elif amountToTradeCDAI > amountBackCDAI: 
-                file.write("IN/OUT: " + str(amountToTradeCDAI/amountBackCDAI) + "\n")
+            file = open("unbalanced_back_and_forth_trade_attack.txt", "a")
+            file.write("Solution found! Swap CUSDC to CDAI back to CUSDC \n")
+            if amountBackCUSDC > amountToTradeCUSDC:
+                file.write("OUT/IN: " + str(amountBackCUSDC/amountToTradeCUSDC) + "\n \n")
+            elif amountToTradeCUSDC > amountBackCUSDC: 
+                file.write("IN/OUT: " + str(amountToTradeCUSDC/amountBackCUSDC) + "\n \n")
             file.write("Required attack balances: \n \n")
             file.write("CDAI: " + str(attack_balances_c_tokens[0]) + "\n")
             file.write("CUSDC: " + str(attack_balances_c_tokens[1]) + "\n")
-            file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n _____________________________________________________________ \n \n")
+            file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n \n")
+            file.write("Amounts to add: \n \n")
+            file.write("CDAI: " + str(liquidityToAdd[0]) + "\n")
+            file.write("CUSDC: " + str(liquidityToAdd[1]) + "\n") 
+            file.write("USDT: " + str(liquidityToAdd[2]) + "\n_____________________________________________________________ \n \n")
             file.close()
 
             #LATER: Withdraw liquidity and do absolute profit calculations, but if we find a case where we get 1% more out than we put in it's already good enough
