@@ -98,13 +98,13 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe some flaw that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as the implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and a small provide by adding and removing liquidity with precise values. While the latter attack profits are outweighed by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented as is on a cheap layer two chain or another chain with lower fees. 
+    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as an implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and an attack yielding a small profit by adding and removing liquidity with precise values. While the latter attack profits are outweighted by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented with the same logic on a cheap layer two network, or when the eth1 state is migrated to eth2.
 
     \section{Theory}
 
     \subsection{Stableswap basics}
 
-    For context, we recall the theory of the Stableswap invariant and the way it is implemented in the Curve contracts. Curve is a what has been referred to as a "constant function automated market maker", or CFMM for short. Given a pool $\vec{x}$ composed of $n$ tokens with respective balances $x_{i}$, a user requesting to swap some amount $\Delta x_{i}$ of tokens $i$ for tokens $j$ should be given an amount $\Delta x_{j}$ such that the following equality remains true with the updated balances: 
+    For context, we recall the theory of the Stableswap invariant and the way it is implemented in the Curve contracts. Curve is a what has been referred to as a "constant function market maker", or CFMM for short. As described in the original Stableswap paper \cite{stableswap2019}, Given a pool $\vec{x}$ composed of $n$ tokens with respective balances $x_{i}$, a user requesting to swap some amount $\Delta x_{i}$ of tokens $i$ for tokens $j$ should be given an amount $\Delta x_{j}$ such that the following equality remains true with the updated balances: 
 
     \begin{equation}
         A n^{n} \sum x_{i}+D=A D n^{n}+\frac{D^{n+1}}{n^{n} \prod x_{i}}
@@ -120,7 +120,7 @@ captionpos=b
 
     \subsection{Path dependence}
 
-    In their 2020 paper, Angeris and Chitra formalize constant function market makers like Uniswap's constant product by introducing a \textit{trade function} $\varphi$. Under their formalism, if $\vec{x}$ is the vector representing the reserves, $\vec{\Delta}$ a vector representing the amounts in and $\vec{\Lambda}$ a vector representing the amounts out, a \textit{trade} is a set $\{\vec{\Delta}, \vec{\Lambda}\}$ such that:
+    In their 2020 paper, Angeris and Chitra \cite{angeris2020} formalize CFMMs like Uniswap's constant product by introducing a \textit{trade function} $\varphi$. Under their formalism, if $\vec{x}$ is the vector representing the reserves, $\vec{\Delta}$ a vector representing the amounts in and $\vec{\Lambda}$ a vector representing the amounts out, a \textit{trade} is a set $\{\vec{\Delta}, \vec{\Lambda}\}$ such that:
 
     \begin{equation}
         \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda}) = \varphi(R, 0,0)
@@ -138,15 +138,15 @@ captionpos=b
         T(R)=\{(\Delta, \Lambda) \mid \psi(R+\Delta-\Lambda) \geq \psi(R)\}
     \end{equation}
 
-    The issue in this reasoning, lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique Curve trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
+    The issue in this reasoning lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
 
-    In the attached code, we prove this path independence by showcasing a specific sequence of trades that leads to the user losing 5\% of the original amount they traded, far more than what they would expect from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades always never leads to a higher amount than the initial amount in.
+    In the attached code, we prove this path dependence by showcasing a specific sequence of trades that leads to the user losing 5\% of the original amount they traded, far more than what they would expect to lose from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades never leads to a higher amount out than the initial amount in.
 
-    Nevertheless, this can be considered a flaw in the fundamental implementation of Curve, as this is not the expected behavior. 
+    Nevertheless, this can be considered a flaw in the fundamental idea of Curve, as this is not the expected behavior. 
 
     \subsection{Invalid D calculations}
     
-    The Curve contract attempts to find an appropriate value of D for a given set of current balances by solving this equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
+    The Curve contract attempts to find an appropriate value of D for a given set of current balances by solving the $f(D) = 0$ equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
 
     \begin{equation}
         D_{n+1} = D_{n} - \frac{f(D_{n})}{f'(D_{n})}
@@ -183,7 +183,7 @@ captionpos=b
         \end{lstlisting}
     \end{adjustwidth}
 
-    As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$ with a high enough precision and enough iterations that is not possible, but we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
+    As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$, as stated before, that is not possible. But we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
 
     One attack we found consists in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. By adding and removing liquidity in sequence, we can in some cases get more out than we initially put in as a liquidity provider. While the profits we found do not offset the transaction fees in the current state of the Ethereum network, this could be considered a critical flaw in the logic of the Curve contracts which could be exploited if the gas fees were to be much lower, for example by migration to a layer two solution or after the migration of the eth1 state to eth2.
 
