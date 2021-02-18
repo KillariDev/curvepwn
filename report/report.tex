@@ -87,7 +87,10 @@ captionpos=b
   {\begin{enumerate}}
   {\end{enumerate}}
 
-\title{Potential critical vulnerability in Curve based contracts}
+  %Sans-serif font, see https://tex.stackexchange.com/questions/2095/what-is-the-simplest-way-to-typeset-an-entire-document-in-sans-serif
+\renewcommand{\familydefault}{\sfdefault}
+
+\title{Audit report: flaws in the Curve contracts logic}
 \author{experience, Killari}
 
 \begin{document}
@@ -95,11 +98,13 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe what we believe constitutes a critical vulnerability in all of the the Curve pools contracts. Used by a malicious attacke, it could gradually empty the pool with a repeat attack.  Due to the way the Stableswap invariant is calculated, it is possible to add tokens to the liquidity pools up to precise values found to break the computation. The attacker can then make use of this flaw to effectively steal from the pool  through repeated trades in a single transaction. Attached to this report, we provide a collection of scripts used to find the values that break the invariant calculation, and a mainnet ready example of the exploit using Aave flash loans. 
+    In this document, we describe some flaw that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as the implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and a small provide by adding and removing liquidity with precise values. While the latter attack profits are outweighed by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented as is on a cheap layer two chain or another chain with lower fees. 
 
     \section{Theory}
 
-    In order to make the exploit as clear as possible, we recall the theory of the Stableswap invariant and the way it is implemented in the Curve contracts. Curve is a what has been referred to as a "constant function automated market maker", or CFMM for short. Given a pool $\vec{x}$ composed of $n$ tokens with respective balances $x_{i}$, a user requesting to swap some amount $\Delta x_{i}$ of tokens $i$ for tokens $j$ should be given an amount $\Delta x_{j}$ such that the following equality remains true with the updated balances: 
+    \subsection{Stableswap basics}
+
+    For context, we recall the theory of the Stableswap invariant and the way it is implemented in the Curve contracts. Curve is a what has been referred to as a "constant function automated market maker", or CFMM for short. Given a pool $\vec{x}$ composed of $n$ tokens with respective balances $x_{i}$, a user requesting to swap some amount $\Delta x_{i}$ of tokens $i$ for tokens $j$ should be given an amount $\Delta x_{j}$ such that the following equality remains true with the updated balances: 
 
     \begin{equation}
         A n^{n} \sum x_{i}+D=A D n^{n}+\frac{D^{n+1}}{n^{n} \prod x_{i}}
@@ -111,7 +116,37 @@ captionpos=b
         f(D) = A n^{n} \sum x_{i}+D - A D n^{n} -\frac{D^{n+1}}{n^{n} \prod x_{i}}
     \end{equation}
 
-    This is simply Equation 1 written differently. The Curve contract attempts to find an appropriate value of D by solving this equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
+    This is simply Equation 1 written differently. With this equation solved, we get the invariant for the current pools. As discussed above, finding the amount to give out given an amount in is also calculated by solving the invariant equation for the unknown quantity to give out. 
+
+    \subsection{Path dependence}
+
+    In their 2020 paper, Angeris and Chitra formalize constant function market makers like Uniswap's constant product by introducing a \textit{trade function} $\varphi$. Under their formalism, if $\vec{x}$ is the vector representing the reserves, $\vec{\Delta}$ a vector representing the amounts in and $\vec{\Lambda}$ a vector representing the amounts out, a \textit{trade} is a set $\{\vec{\Delta}, \vec{\Lambda}\}$ such that:
+
+    \begin{equation}
+        \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda}) = \varphi(R, 0,0)
+    \end{equation}
+
+    They then proceed to define the Curve trading function as: 
+
+    \begin{equation}
+        \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda})=\alpha \mathbf{1}^{T}(\vec{x}+\gamma \vec{\Delta}-\vec{\Lambda})-\beta \prod_{i=1}^{n}\left(x_{i}+\gamma \vec{\Delta}_{i}-\vec{\Lambda}_{i}\right)^{-1}
+    \end{equation}
+
+    And they later state that this function verifies the sufficient condition that the set of possible trades can be written as: 
+
+    \begin{equation}
+        T(R)=\{(\Delta, \Lambda) \mid \psi(R+\Delta-\Lambda) \geq \psi(R)\}
+    \end{equation}
+
+    The issue in this reasoning, lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique Curve trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
+
+    In the attached code, we prove this path independence by showcasing a specific sequence of trades that leads to the user losing 5\% of the original amount they traded, far more than what they would expect from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades always never leads to a higher amount than the initial amount in.
+
+    Nevertheless, this can be considered a flaw in the fundamental implementation of Curve, as this is not the expected behavior. 
+
+    \subsection{Invalid D calculations}
+    
+    The Curve contract attempts to find an appropriate value of D for a given set of current balances by solving this equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
 
     \begin{equation}
         D_{n+1} = D_{n} - \frac{f(D_{n})}{f'(D_{n})}
@@ -147,11 +182,12 @@ captionpos=b
             return D
         \end{lstlisting}
     \end{adjustwidth}
+
     As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$ with a high enough precision and enough iterations that is not possible, but we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
 
-    One attack we found consists in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$, which then leads to incorrect calculations of the amounts to give out after a trade. We can thus do risk-free ``virtual arbitrage'' in a single transaction, which could gradually empty the pool if repeated enough times.
+    One attack we found consists in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. By adding and removing liquidity in sequence, we can in some cases get more out than we initially put in as a liquidity provider. While the profits we found do not offset the transaction fees in the current state of the Ethereum network, this could be considered a critical flaw in the logic of the Curve contracts which could be exploited if the gas fees were to be much lower, for example by migration to a layer two solution or after the migration of the eth1 state to eth2.
 
-    \section{Step-by-step description of an example attack}
+    \section{Set up of possible attacks or bugs}
 
     In this section we describe an attack based on manipulating a pool with a limited amount of liquidity to get an invalid D with the example of the current USDT pool which at the time of writing has reserves of ~228K DAI, ~718K USDC, ~547K USDT. 
 
@@ -159,7 +195,7 @@ captionpos=b
         \step{Find an unbalanced perturbation of the pool leading to an invalid D}
         \explanation{To do that, we replicate the \texttt{get\_D} function from the Curve contracts and we ``mine'' balances within that range that lead to an invalid D. Starting from an approximate \texttt{attack\_balance} to work with, we iteratively perturb it with the \texttt{uniform} function from the \texttt{random} package until we find a balances that give an incorrect value of D, i.e. a value of D such that $f(D) \neq 0$. Note that we look for an unbalanced pool because we found in our research that the resulting deviations between invalid and valid D are higher in that case.}
         
-        \step{Add exactly enough liquidity to the pool so that we reach the \texttt{attack\_balance} found}
+        \step{Add exactly enough liquidity to the pool so that we reach the balance found}
 
         \step{Trade the exact same amounts back and forth}
         \explanation{In the attacked example exploit, we're trading swapping some amount of cUSDC for cDAI, and then swapping the exact amount of cDAI obtained back to cUSDC. We start from a pool with invalid D, so it will give us some amount of cDAI for our cUSDC. When trading cUSDC back to cDAI, the new D is calculated. Since that new D will be valid with overwhelming probability, there will be a larger than normal discrepancy between  those two Ds, which allows us to get more cUSDC out of the operation than we started with.}
