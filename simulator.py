@@ -191,7 +191,7 @@ while(False):
 
 #Test: find invalid D for very unbalanced pool, trade on that pool and then trade back. 
 iteration = 0
-while True: 
+while False: 
 
     resetBalances()
 
@@ -303,4 +303,81 @@ while True:
         #     exit()
         # except:
         #     continue    
-        iteration += 1 
+        iteration += 1
+
+#Test: find invalid D for very unbalanced pool, trade on that pool and then trade back. 
+iteration = 0
+while True: 
+    resetBalances()
+
+    our_initial_balance = funds_avail_ctokens
+    fundsIn = sum([CTokensToDollars(our_initial_balance[i],i) for i in range(N_COINS)])
+
+    #Current balance of the USDT pool in CTokens
+
+    cdai = current_ctokens[0]
+    cusdc = current_ctokens[1]
+    cusdt = current_ctokens[2]
+
+    #For easily understandable adjustments
+    attack_balances_usd = [500000,2000000,600000]
+
+    #Convert to CTokens
+    attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
+    attack_balances_c_tokens = [int(uniform(0.8,1)*attack_balances_c_tokens[0]), int(uniform(0.8,1)*attack_balances_c_tokens[1]), int(uniform(0.99,1)*attack_balances_c_tokens[2])]
+    liquidityToAdd = [attack_balances_c_tokens[i] - contract_balance[i] for i in range(N_COINS)]
+    simAddLiquidity(liquidityToAdd)
+    amountToTradeCUSDC = int(uniform(0.000001, 0.1)*cusdc)
+    cusdcBeforeTrade = our_balance[1]
+    daiBeforeTrade = our_balance[0]
+    simTrade(1, 0, amountToTradeCUSDC)
+    amountOutCDAI = our_balance[0]-daiBeforeTrade
+    simTrade(0, 1, amountOutCDAI)
+    
+    amountBackCUSDC=our_balance[1]-cusdcBeforeTrade
+    
+    if (amountBackCUSDC > amountToTradeCUSDC):
+
+        print("Solution found!")
+        #Redo the same attack 10 times
+        for i in range(10):
+            #Add liquidity to get back to the attack balances
+            liquidityToAdd = [attack_balances_c_tokens[i] - contract_balance[i] for i in range(N_COINS)]
+            simAddLiquidity(liquidityToAdd)
+            daiBeforeTrade = our_balance[0]
+            simTrade(1, 0, amountToTradeCUSDC) 
+            amountOutCDAI = our_balance[0]-daiBeforeTrade
+            simTrade(0, 1, amountOutCDAI)
+        
+        #Save solution found
+
+        file = open("unbalanced_back_and_forth_trade_attack2.txt", "a")
+        file.write("Solution found! Swap CUSDC to CDAI back to CUSDC \n")
+        if amountBackCUSDC > amountToTradeCUSDC:
+            file.write("OUT/IN: " + str(amountBackCUSDC/amountToTradeCUSDC) + "\n \n")
+        elif amountToTradeCUSDC > amountBackCUSDC: 
+            file.write("IN/OUT: " + str(amountToTradeCUSDC/amountBackCUSDC) + "\n \n")
+        file.write("Required attack balances: \n \n")
+        file.write("CDAI: " + str(attack_balances_c_tokens[0]) + "\n")
+        file.write("CUSDC: " + str(attack_balances_c_tokens[1]) + "\n")
+        file.write("USDT: " + str(attack_balances_c_tokens[2]) + "\n \n")
+        file.write("Amounts to add: \n \n")
+        file.write("CDAI: " + str(liquidityToAdd[0]) + "\n")
+        file.write("CUSDC: " + str(liquidityToAdd[1]) + "\n") 
+        file.write("USDT: " + str(liquidityToAdd[2]) + "\n") 
+        file.write("Amount to Trade: \n \n")
+        file.write("CUSDC: " + str(amountToTradeCUSDC) + "\n") 
+        simRemoveLiquidity(our_poolTokens)
+        fundsOut = sum([CTokensToDollars(our_balance[i],i) for i in range(N_COINS)])
+        profit = fundsOut-fundsIn
+        file.write("Profit: " + str(profit) + "$\n")
+        
+        file.write("\n_____________________________________________________________ \n \n")
+        
+        file.close()
+
+    # except KeyboardInterrupt:
+    #     exit()
+    # except:
+    #     continue    
+    iteration += 1 
