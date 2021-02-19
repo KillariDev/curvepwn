@@ -101,7 +101,7 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as the demonstration of a bug that leads to the loss of funds by a user doing repeated trades.
+    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra \cite{angeris2020} is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may be able to make use of this flaw to effectively steal from the pool. 
 
     \section{Theory}
 
@@ -123,7 +123,7 @@ captionpos=b
 
     \subsection{Path dependence}
 
-    In their 2020 paper, Angeris and Chitra \cite{angeris2020} formalize CFMMs like Uniswap's constant product by introducing a \textit{trade function} $\varphi$. Under their formalism, if $\vec{x}$ is the vector representing the reserves, $\vec{\Delta}$ a vector representing the amounts in and $\vec{\Lambda}$ a vector representing the amounts out, a \textit{trade} is a set $\{\vec{\Delta}, \vec{\Lambda}\}$ such that:
+    In their 2020 paper, Angeris and Chitra formalize CFMMs like Uniswap's constant product by introducing a \textit{trade function} $\varphi$. Under their formalism, if $\vec{x}$ is the vector representing the reserves, $\vec{\Delta}$ a vector representing the amounts in and $\vec{\Lambda}$ a vector representing the amounts out, a \textit{trade} is a set $\{\vec{\Delta}, \vec{\Lambda}\}$ such that:
 
     \begin{equation}
         \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda}) = \varphi(R, 0,0)
@@ -143,7 +143,7 @@ captionpos=b
 
     The issue in this reasoning lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
 
-    In the attached code, we prove this path dependence by showcasing a specific sequence of trades that leads to the user losing 5\% of the original amount they traded, far more than what they would expect to lose from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades never leads to a higher amount out than the initial amount in.
+    We tested this path dependence by executing a specific sequence of trades on a local Ethereum mainnet fork that leads to the user losing 5\% of the original amount they traded, far more than what they would expect to lose from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades never leads to a higher amount out than the initial amount in.
 
     Nevertheless, this can be considered a flaw in the fundamental design of Curve, as this is not the expected behavior. 
 
@@ -155,7 +155,7 @@ captionpos=b
         D_{n+1} = D_{n} - \frac{f(D_{n})}{f'(D_{n})}
     \end{equation}
 
-    This is done until $\| D_{n+1} - D_{n} \| < \varepsilon$ with some user defined $\varepsilon$ precision. It can be shown that the method either converges to a root of the function, that is, a value of D verifying our equation, or does not converge. The number of steps it takes to converge (if it does) is variable. Below is an example implementation of that algorithm in the Curve contracts from \verb {StableSwapUSDT.vy{ : \vspace{5mm}
+    This is done until $\| D_{n+1} - D_{n} \| < \varepsilon$ with some user defined $\varepsilon$ precision. It can be shown that in $\mathbb{R}$ the method either converges to a root of the function, that is, a value of D verifying our equation, or does not converge. The number of steps it takes to converge (if it does) is variable. Below is an example implementation of that algorithm in the Curve contracts from \verb {StableSwapUSDT.vy{ : \vspace{5mm}
 
     \begin{adjustwidth}{-50pt}{-50pt}
         \begin{lstlisting}[language=Python]
@@ -188,28 +188,26 @@ captionpos=b
 
     As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$, as stated before, that is not possible. But we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
 
-    This opens the door for possible attacks that would consist in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. Though we didn not find any attack using this flaw specifically, it would be useful to check that the D obtained is correct to prevent any creative exploit of this flaw. 
+    This opens the door for possible attacks that would consist in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. Though we did not find any attack using this flaw specifically, it would be useful to check that the D obtained is correct to prevent any creative exploit that we might not have thought of. 
 
     \section{Set up of possible attacks or bugs}
 
-    Due to the path dependency explained above, it becomes possible in principle for a particular sequence of trade to net a profit, or a loss higher than the trading fees for a trader. In particular for large trades that change the pool composition such that the new $D$ after the trade significantly differs from the original $D$ (for some meaning of significant not fully defined in our work), the invariant would not give the same amount out as in. 
+    Due to the path dependency explained above, it becomes possible in principle for a particular sequence of trade to net a profit, or a loss higher than the trading fees for a trader. In particular for large trades that change the pool composition such that the new $D$ after the trade significantly differs from the original $D$ (for some meaning of significant to be defined through further exploration), the invariant would not give the same amount out as in. 
     
-    We demonstrated this bug in a local fork of the Ethereum mainnet, at block 11853997 in the USDT Curve pool. At that block the pool was composed of 1757662794027293 CDAI,  3506962588474923 CUSC and 324570592963 USDT. By swapping 2776297808957086 CUSDC to CDAI, and then swapping the exact amount of CDAI given out back to CUSD, we end up with 2624090423136564 CUSDC, or a loss of 5.48\%. 
+    We demonstrated this issue in a local fork of the Ethereum mainnet, at block 11853997 in the USDT Curve pool. At that block the pool was composed of 1757662794027293 CDAI,  3506962588474923 CUSC and 324570592963 USDT. By swapping 2776297808957086 CUSDC to CDAI, and then swapping the exact amount of CDAI given out back to CUSD, we end up with 2624090423136564 CUSDC, or a loss of 5.48\%. 
 
-    The code to replicate this can be found in our project in file \texttt{exploit.sol}.
+    This is a specific proof of concept example, we have not explored all possibilities related to the path dependency in the case of trades. We don't know whether it would be possible for an attacker to construct a particular path of trades netting a profit, but we believe the demonstrated flaw already constitutes a deviation from the expected behavior of Curve. 
 
-    This is one particular proof of concept example, we have not explored all possibilities related to the path dependency in the case of trades. We don't know whether it would be possible for an attacker to construct a particular path of trades netting a profit, but we believe the demonstrated flaw already constitutes a deviation from the expected behavior of Curve. 
-
-    A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. One would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. Our simulator to mind invalid values of D can be found in the script \texttt{simulator.py}.
+    A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid D computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. One would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. 
 
     \section{Mitigation strategies}
 
     \subsection{Path dependency}
 
-    If our reasoning regarding path dependency is correct, then it is a fundamental limitation of the Stableswap implementation. However, since we couldn't find any profitable sequence of trades in our initial search, one could suspect that this can only lead to losses. In order to be confident that it is the case, one would need to formally analyze the properties of the Stableswap system and prove that the path dependency can only lead to losses. As long as this is not proved, the door is opened to potential exploitation of this aspect of the automated market maker. 
+    If our reasoning regarding path dependency is correct, then it is a fundamental limitation of the Stableswap implementation. However, since we couldn't find any profitable sequence of trades in our initial search, one could suspect that this can only lead to losses. In order to be confident that it is the case, one would need to formally analyze the properties of the Stableswap system and prove that the path dependency can only lead to losses. As long as this is not proved, the door is opened to potential profit motivated exploitation of this aspect of the automated market maker. 
 
     \subsection{Invalid Ds}
 
-    To prevent any potential exploit of the invalid D calculations, it would seem wise to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't.
+    To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't.
 
 \end{document}
