@@ -80,6 +80,9 @@ captionpos=b
 %Package to change horizontal margins for a specific part using \begin{adjustwidth}{right change amount}{left change amount}
 \usepackage{changepage}
 
+%To set margins
+\usepackage{geometry}
+
 %New environement to have first line of an enumerate list bold
 \newcommand{\step}[1]{\item{\bfseries #1}}
 \newcommand{\explanation}[1]{\par #1}
@@ -90,7 +93,7 @@ captionpos=b
   %Sans-serif font, see https://tex.stackexchange.com/questions/2095/what-is-the-simplest-way-to-typeset-an-entire-document-in-sans-serif
 \renewcommand{\familydefault}{\sfdefault}
 
-\title{Report: flaws in the Curve pools contracts logic}
+\title{Report: possible flaws in the Curve pools logic}
 \author{experience, Killari}
 
 \begin{document}
@@ -98,7 +101,7 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as an implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and an attack yielding a small profit by adding and removing liquidity with precise values. While the latter attack profits are outweighted by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented with the same logic on a cheap layer two network like the planned zkSync implementation, or when the eth1 state is migrated to eth2.
+    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as the demonstration of a bug that leads to the loss of funds by a user doing repeated trades.
 
     \section{Theory}
 
@@ -189,8 +192,6 @@ captionpos=b
 
     \section{Set up of possible attacks or bugs}
 
-    \subsection{Loss of traders funds via back and forth trades}
-
     Due to the path dependency explained above, it becomes possible in principle for a particular sequence of trade to net a profit, or a loss higher than the trading fees for a trader. In particular for large trades that change the pool composition such that the new $D$ after the trade significantly differs from the original $D$ (for some meaning of significant not fully defined in our work), the invariant would not give the same amount out as in. 
     
     We demonstrated this bug in a local fork of the Ethereum mainnet, at block 11853997 in the USDT Curve pool. At that block the pool was composed of 1757662794027293 CDAI,  3506962588474923 CUSC and 324570592963 USDT. By swapping 2776297808957086 CUSDC to CDAI, and then swapping the exact amount of CDAI given out back to CUSD, we end up with 2624090423136564 CUSDC, or a loss of 5.48\%. 
@@ -201,10 +202,14 @@ captionpos=b
 
     A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. One would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. Our simulator to mind invalid values of D can be found in the script \texttt{simulator.py}.
 
-    \subsection{Small profits from adding and withdrawing liquidity in sequence}
+    \section{Mitigation strategies}
 
-    ...description of the attack... 
-    
-    While the profits we found do not offset the transaction fees in the current state of the Ethereum network, this could be considered a critical flaw in the logic of the Curve contracts which could be exploited if the gas fees were to be much lower, for example by migration to a layer two solution or after the migration of the eth1 state to eth2.
+    \subsection{Path dependency}
+
+    If our reasoning regarding path dependency is correct, then it is a fundamental limitation of the Stableswap implementation. However, since we couldn't find any profitable sequence of trades in our initial search, one could suspect that this can only lead to losses. In order to be confident that it is the case, one would need to formally analyze the properties of the Stableswap system and prove that the path dependency can only lead to losses. As long as this is not proved, the door is opened to potential exploitation of this aspect of the automated market maker. 
+
+    \subsection{Invalid Ds}
+
+    To prevent any potential exploit of the invalid D calculations, it would seem wise to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't.
 
 \end{document}
