@@ -129,7 +129,7 @@ captionpos=b
     They then proceed to define the Curve trading function as: 
 
     \begin{equation}
-        \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda})=\alpha \mathbf{1}^{T}(\vec{x}+\gamma \vec{\Delta}-\vec{\Lambda})-\beta \prod_{i=1}^{n}\left(x_{i}+\gamma \vec{\Delta}_{i}-\vec{\Lambda}_{i}\right)^{-1}
+        \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda})=\alpha \mathbf{1}^{T}(\vec{x}+\gamma \vec{\Delta}-\vec{\Lambda})-\beta \prod_{i=1}^{n}\left(x_{i}+\gamma \Delta_{i}-\Lambda_{i}\right)^{-1}
     \end{equation}
 
     And they later state that this function verifies the sufficient condition that the set of possible trades can be written as: 
@@ -142,9 +142,9 @@ captionpos=b
 
     In the attached code, we prove this path dependence by showcasing a specific sequence of trades that leads to the user losing 5\% of the original amount they traded, far more than what they would expect to lose from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades never leads to a higher amount out than the initial amount in.
 
-    Nevertheless, this can be considered a flaw in the fundamental idea of Curve, as this is not the expected behavior. 
+    Nevertheless, this can be considered a flaw in the fundamental design of Curve, as this is not the expected behavior. 
 
-    \subsection{Invalid D calculations}
+    \subsection{Invalid D computations}
     
     The Curve contract attempts to find an appropriate value of D for a given set of current balances by solving the $f(D) = 0$ equation iteratively using the Newton method. Starting with an initial guess $D_{0}$, the next value of D is computed using the following sequence: 
 
