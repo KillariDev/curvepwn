@@ -90,7 +90,7 @@ captionpos=b
   %Sans-serif font, see https://tex.stackexchange.com/questions/2095/what-is-the-simplest-way-to-typeset-an-entire-document-in-sans-serif
 \renewcommand{\familydefault}{\sfdefault}
 
-\title{Audit report: flaws in the Curve contracts logic}
+\title{Report: flaws in the Curve pools contracts logic}
 \author{experience, Killari}
 
 \begin{document}
@@ -98,7 +98,7 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as an implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and an attack yielding a small profit by adding and removing liquidity with precise values. While the latter attack profits are outweighted by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented with the same logic on a cheap layer two network, or when the eth1 state is migrated to eth2.
+    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may make use of this flaw to effectively steal from the pool through repeated actions in a single transaction. Attached to this report, we provide a collection of scripts used to simulate the Curve contracts during our research, as well as an implementation of two exploits on a forked Ethereum mainnet chain: the loss of funds by a user doing repeated trades, and an attack yielding a small profit by adding and removing liquidity with precise values. While the latter attack profits are outweighted by the gas fees in the current state of the Ethereum network, they could be profitable were Curve to be implemented with the same logic on a cheap layer two network like the planned zkSync implementation, or when the eth1 state is migrated to eth2.
 
     \section{Theory}
 
@@ -185,103 +185,26 @@ captionpos=b
 
     As we can see, the algorithm uses 255 iterations, which normally should be enough to converge to a root of the function. But what if we converge to something other than a root of the function before the end of the loop? In $\mathbb{R}$, as stated before, that is not possible. But we see that this algorithm uses 256 bits unsigned integers and integers division. If we encounter any value $D_{i}$ such that $f(D_{i}) < f'(D_{i})$, the integers division will give 0 for $f(D_{n})/f'(D_{n})$, and we will have $D_{i+1} = D_{i}$, thus meeting the condition to terminate the loop before we arrive at an appropriate value. 
 
-    One attack we found consists in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. By adding and removing liquidity in sequence, we can in some cases get more out than we initially put in as a liquidity provider. While the profits we found do not offset the transaction fees in the current state of the Ethereum network, this could be considered a critical flaw in the logic of the Curve contracts which could be exploited if the gas fees were to be much lower, for example by migration to a layer two solution or after the migration of the eth1 state to eth2.
+    This opens the door for possible attacks that would consist in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. Though we didn not find any attack using this flaw specifically, it would be useful to check that the D obtained is correct to prevent any creative exploit of this flaw. 
 
     \section{Set up of possible attacks or bugs}
 
-    In this section we describe an attack based on manipulating a pool with a limited amount of liquidity to get an invalid D with the example of the current USDT pool which at the time of writing has reserves of ~228K DAI, ~718K USDC, ~547K USDT. 
+    \subsection{Loss of traders funds via back and forth trades}
 
-    \begin{steps}
-        \step{Find an unbalanced perturbation of the pool leading to an invalid D}
-        \explanation{To do that, we replicate the \texttt{get\_D} function from the Curve contracts and we ``mine'' balances within that range that lead to an invalid D. Starting from an approximate \texttt{attack\_balance} to work with, we iteratively perturb it with the \texttt{uniform} function from the \texttt{random} package until we find a balances that give an incorrect value of D, i.e. a value of D such that $f(D) \neq 0$. Note that we look for an unbalanced pool because we found in our research that the resulting deviations between invalid and valid D are higher in that case.}
-        
-        \step{Add exactly enough liquidity to the pool so that we reach the balance found}
+    Due to the path dependency explained above, it becomes possible in principle for a particular sequence of trade to net a profit, or a loss higher than the trading fees for a trader. In particular for large trades that change the pool composition such that the new $D$ after the trade significantly differs from the original $D$ (for some meaning of significant not fully defined in our work), the invariant would not give the same amount out as in. 
+    
+    We demonstrated this bug in a local fork of the Ethereum mainnet, at block 11853997 in the USDT Curve pool. At that block the pool was composed of 1757662794027293 CDAI,  3506962588474923 CUSC and 324570592963 USDT. By swapping 2776297808957086 CUSDC to CDAI, and then swapping the exact amount of CDAI given out back to CUSD, we end up with 2624090423136564 CUSDC, or a loss of 5.48\%. 
 
-        \step{Trade the exact same amounts back and forth}
-        \explanation{In the attacked example exploit, we're trading swapping some amount of cUSDC for cDAI, and then swapping the exact amount of cDAI obtained back to cUSDC. We start from a pool with invalid D, so it will give us some amount of cDAI for our cUSDC. When trading cUSDC back to cDAI, the new D is calculated. Since that new D will be valid with overwhelming probability, there will be a larger than normal discrepancy between  those two Ds, which allows us to get more cUSDC out of the operation than we started with.}
+    The code to replicate this can be found in our project in file \texttt{exploit.sol}.
 
-        \step{Repeat step 2 enough times to net a profit compensating for gas fees and flash loan fees}
+    This is one particular proof of concept example, we have not explored all possibilities related to the path dependency in the case of trades. We don't know whether it would be possible for an attacker to construct a particular path of trades netting a profit, but we believe the demonstrated flaw already constitutes a deviation from the expected behavior of Curve. 
 
-        \step{Withdraw liquidity initially added}
+    A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. One would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. Our simulator to mind invalid values of D can be found in the script \texttt{simulator.py}.
 
-        \explanation{Since we added liquidity to the pool in the first place, we were in part "stealing from ourselves" with the previous operations, but there is still some net profit left.}
+    \subsection{Small profits from adding and withdrawing liquidity in sequence}
 
-    \end{steps}
-
-    These steps can be repeated \textit{ad infinitum} until the point at which the pools would be very unbalanced after withdrawing liquidity, making the spot price significantly deviate from the ``reference'' spot price of 1 and allowing for a deadly arbitrage. Below is an excerpt from the Python script that let us find differences of amount given back compared to amount initially traded as high as 1\%! \vspace{5mm}
-
-    \begin{adjustwidth}{-50pt}{-50pt}
-        \begin{lstlisting}[language=Python]
-
-        seed(None)
-
-        while True: 
-
-            #Assume 20M of each token available to be able to test many configurations 
-            funds_avail_ctokens = [DollarsToCTokens(20000000, i) for i in range(N_COINS)]
-
-            resetBalances()
-
-            our_initial_balance = funds_avail_ctokens
-
-            #Current balance of the USDT pool in CTokens
-
-            cdai = current_ctokens[0]
-            cusdc = current_ctokens[1]
-            cusdt = current_ctokens[2]
-
-            #Enter in USD values for easily understandable adjustments
-            attack_balances_usd = [1000000,10000000,5000000]
-
-            #Convert to CTokens
-            attack_balances_c_tokens = [DollarsToCTokens(attack_balances_usd[0], 0), DollarsToCTokens(attack_balances_usd[1], 1), DollarsToCTokens(attack_balances_usd[2], 2)]
-
-            #Perturb to find an invalid D
-            attack_balances_c_tokens = [int(uniform(0.8,1)*attack_balances_c_tokens[0]), int(uniform(0.8,1)*attack_balances_c_tokens[1]), int(uniform(0.8,1)*attack_balances_c_tokens[2])]
-
-            #Convert to TokensPrecision
-            attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[0], 0), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[1], 1), CTokensToTokensIncreasedPrecision(attack_balances_c_tokens[2], 2)]
-
-            #Get D for this pool composition
-            D = solver.get_D(attack_balances_tokens_precision, amp)
-            
-            #Check if the D found breaks the invariant
-            u = USDTpool(attack_balances_tokens_precision, amp, D)
-
-            #If D doesn't verify the invariant relationship
-            if abs(u) > 0:
-
-                #Find liquidity to add to get the invalid D found
-
-                liquidityToAdd = [attack_balances_c_tokens[i] - current_ctokens[i] for i in range(N_COINS)]
-
-                #Add liquidity into the original pool to get to the exact attack balances found 
-
-                simAddLiquidity(liquidityToAdd)
-
-                #Perform a swap of 40% the original amount of (c)USDC for (c)DAI into that new pool
-
-                #Get amount in
-                amountToTradeCUSDC = int(cusdc*0.4)
-
-                #Get the amount out before changing the state of the pool
-                amountOutCDAI = solver._exchange(1, 0, current_ctokens, amountToTradeCUSDC, rates, fee, amp)
-
-                #Change state of the pool
-                simTrade(1, 0, amountToTradeCUSDC) 
-
-                #Trade the exact amount of (c)DAI obtained back to (c)USDC
-
-                amountBackCUSDC = solver._exchange(0, 1, contract_balance, amountOutCDAI, rates, fee, amp)
-
-                simTrade(0, 1, amountOutCDAI)
-
-                if (amountBackCUSDC > 1.009*amountToTradeCUSDC or amountToTradeCUSDC > 1.009*amountBackCUSDC):
-
-                    print("Solution found!")
-        \end{lstlisting}
-    \end{adjustwidth}
-
-    The relevant functions used are fully documented in the code attached to this report.
+    ...description of the attack... 
+    
+    While the profits we found do not offset the transaction fees in the current state of the Ethereum network, this could be considered a critical flaw in the logic of the Curve contracts which could be exploited if the gas fees were to be much lower, for example by migration to a layer two solution or after the migration of the eth1 state to eth2.
 
 \end{document}
