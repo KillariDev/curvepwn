@@ -208,7 +208,9 @@ captionpos=b
 
     \subsection{Invalid Ds}
 
-    To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't.
+    To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't. 
+
+    Another potential mitigation strategy related to D would be to check that it moves in the ``expected'' direction after each trade. This is already done when adding liquidity, but not for trading. One would have to explore what the expected direction is for different types of trades analytically. This might prevent some exploits that we have not found in our initial research.
 
 \bibliographystyle{unsrt}
 \bibliography{references}
