@@ -101,7 +101,7 @@ captionpos=b
 
     \section{Overview}
 
-    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra \cite{angeris2020} is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. An attacker may be able to make use of this flaw to effectively steal from the pool. 
+    In this document, we describe some flaws that affect all of the Curve pools contracts and might be exploitable by a profit seeking attacker under some conditions, or lead to user losses. Firstly, we note that the accepted proof of path independence for the Curve invariant provided by Angeris and Chitra \cite{angeris2020} is incorrect, meaning that a user cannot expect to get the exact same amount back from a back and forth trade even in the case of zero trade fees. Secondly, due to the way the Stableswap invariant is calculated, it is possible to change the composition of the pools to precise values found to break the computation. Though we have not yet found a profitable attack yet, an attacker may be able to make use of this flaw to effectively steal from the pool. 
 
     \section{Theory}
 
@@ -113,13 +113,13 @@ captionpos=b
         A n^{n} \sum x_{i}+D=A D n^{n}+\frac{D^{n+1}}{n^{n} \prod x_{i}}
     \end{equation}
 
-    Where $A$ is a fixed parameter called the ``amplification factor''. As we can see, it is implied that this equality was true to begin with. In particular, this means that the equation was set with an appropriate value of $D$. This is because as implied in the Stableswap paper, a $D$ that breaks this equality would not necessarily correspond to a spot price of $1$ when balances are close to each other. To do this, given an initial portfolio of tokens $\vec{x}$, we solve the equation $f(D) = 0$ where: 
+    Where $A$ is a fixed parameter called the ``amplification factor''. As we can see, it is implied that this equality was true to begin with. In particular, this means that the equation was set with an appropriate value of $D$. This is because as implied in the Stableswap paper, a $D$ that breaks this equality would not necessarily correspond to a spot price of $1$ when balances are close to each other. In order to achieve this, given an initial portfolio of tokens $\vec{x}$, we solve the equation $f(D) = 0$ where: 
 
     \begin{equation}
         f(D) = A n^{n} \sum x_{i}+D - A D n^{n} -\frac{D^{n+1}}{n^{n} \prod x_{i}}
     \end{equation}
 
-    This is simply Equation 1 written differently. With this equation solved, we get the invariant for the current pools. As discussed above, finding the amount to give out given an amount in is also calculated by solving the invariant equation for the unknown quantity to give out. 
+    where $f$ is obtained from Equation 1. With this equation solved, we get the invariant for the current pool composition. As discussed above, finding the amount to give out given an amount in is also calculated by solving the invariant equation for the unknown quantity to give out. 
 
     \subsection{Path dependence}
 
@@ -135,13 +135,13 @@ captionpos=b
         \varphi(\vec{x}, \vec{\Delta}, \vec{\Lambda})=\alpha \mathbf{1}^{T}(\vec{x}+\gamma \vec{\Delta}-\vec{\Lambda})-\beta \prod_{i=1}^{n}\left(x_{i}+\gamma \Delta_{i}-\Lambda_{i}\right)^{-1}
     \end{equation}
 
-    And they later state that this function verifies the sufficient condition that the set of possible trades can be written as: 
+    They later state that this function verifies the sufficient condition for path independence that the set of possible trades can be written as: 
 
     \begin{equation}
         T(R)=\{(\Delta, \Lambda) \mid \psi(R+\Delta-\Lambda) \geq \psi(R)\}
     \end{equation}
 
-    The issue in this reasoning lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
+    where $\psi$ is a single non decreasing quasiconcave function. The issue in this reasoning lies in the definition of the Curve trading function. More specifically, the Stableswap invariant does not fall under this formalism, because there are no fixed $\alpha$ and $\beta$ such that one could always write a unique trading function as in Equation 3. Indeed, as discussed in Section 2.1, for each specific amount of tokens in the pool, a different D is calculated to make sure Equation 1 holds. This means that we cannot write the condition in Equation 5 above in that context, as a change of balance changes the value of D, and thus the function $\varphi$. 
 
     We tested this path dependence by executing a specific sequence of trades on a local Ethereum mainnet fork that leads to the user losing 5\% of the original amount they traded, far more than what they would expect to lose from the fees. We were not able to find a sequence of trades that would let the user effectively steal from the pool, but because of the lack of path independence property, this cannot be excluded unless we prove that any sequence of trades never leads to a higher amount out than the initial amount in.
 
@@ -198,17 +198,17 @@ captionpos=b
 
     This is a specific proof of concept example, we have not explored all possibilities related to the path dependency in the case of trades. We don't know whether it would be possible for an attacker to construct a particular path of trades netting a profit, but we believe the demonstrated flaw already constitutes a deviation from the expected behavior of Curve. 
 
-    A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid D computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. One would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. 
+    A profit might come from combining invalid D computations and a back and forth trade, for example if the attacker trades an amount crafted specifically to trigger an invalid D computation and then trades back the same amount that they got out from the first trade. Alternatively, one could find a small amount of liquidity to add in order to trigger an invalid D calculation, and then perform a back and forth trade. The attacker would have to mine such sequences in a simulator. We briefly explored the parameter space with a Python simulator copying the behavior of the Curve contracts on our local machines, but there is a lot left to explore. 
 
     \section{Mitigation strategies}
 
     \subsection{Path dependency}
 
-    If our reasoning regarding path dependency is correct, then it is a fundamental limitation of the Stableswap implementation. However, since we couldn't find any profitable sequence of trades in our initial search, one could suspect that this can only lead to losses. In order to be confident that it is the case, one would need to formally analyze the properties of the Stableswap system and prove that the path dependency can only lead to losses. As long as this is not proved, the door is opened to potential profit motivated exploitation of this aspect of the automated market maker. 
+    If our reasoning regarding path dependency is correct, then it is a fundamental limitation of the Stableswap implementation. However, since we couldn't find any profitable sequence of trades in our initial search, one could suspect that this can only lead to losses, which would preclude this flaw from ever becoming an attack vector. In order to be confident that it is the case, one would need to formally analyze the properties of the Stableswap system and prove that the path dependency can only lead to losses. As long as this is not proved, the door is opened to potential profit motivated exploitation of this aspect of the automated market maker. 
 
     \subsection{Invalid Ds}
 
-    To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't. 
+    To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of liquidity, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't. 
 
     Another potential mitigation strategy related to D would be to check that it moves in the ``expected'' direction after each trade. This is already done when adding liquidity, but not for trading. One would have to explore what the expected direction is for different types of trades analytically. This might prevent some exploits that we have not found in our initial research.
 
