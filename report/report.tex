@@ -190,7 +190,7 @@ captionpos=b
 
     This opens the door for possible attacks that would consist in finding functions $f$ (i.e. pool balances) that cause this early termination, making it so that \verb {get_D{ returns a value of D such that $f(D) \neq 0$. Though we did not find any attack using this flaw specifically, it would be useful to check that the D obtained is correct to prevent any creative exploit that we might not have thought of. 
 
-    \section{Set up of possible attacks or bugs}
+    \section{Setup of possible attacks or bugs}
 
     Due to the path dependency explained above, it becomes possible in principle for a particular sequence of trade to net a profit, or a loss higher than the trading fees for a trader. In particular for large trades that change the pool composition such that the new $D$ after the trade significantly differs from the original $D$ (for some meaning of significant to be defined through further exploration), the invariant would not give the same amount out as in. 
     
@@ -209,5 +209,8 @@ captionpos=b
     \subsection{Invalid Ds}
 
     To prevent any potential exploit of the invalid D calculations, an easy fix would be to change the contracts to include a check that \textit{after} a trade or the addition / removal of a specfic amount of tokens, the D obtained indeed verifies Equation 1, and refuse the action if it doesn't.
+
+\bibliographystyle{unsrt}
+\bibliography{references}
 
 \end{document}
