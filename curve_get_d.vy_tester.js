@@ -5,13 +5,12 @@ publicKey = '0xd19af7f1eE49B84C6c75b55bC57b4FDBfc79c0a8'
 privatekey = "0xc29c1e85ff7d862460fd05a94945052a5d26f9bb9a9f506f836f723ffc18372e"
 
 
-const url = "http://127.0.0.1:7546"
+const url = "http://127.0.0.1:8545/"
 const networkId = 4447
 const ethersOptions = { gasLimit: 1500000, gasPrice: 0};
 					
 const provider = new ethers.providers.JsonRpcProvider(url);
 let wallet = new ethers.Wallet(privatekey, provider);
-let coins = ["5964701408771020","4000746608394295", "3000178213"]
 
 async function func() {
 	const factory = new ethers.ContractFactory(abi, bytecode, wallet);
@@ -21,8 +20,17 @@ async function func() {
 
 	console.log(contract.address);
 	console.log(contract.deployTransaction);
-	result = await contract.get_I([ethers.BigNumber.from(coins[0]), ethers.BigNumber.from(coins[1]), ethers.BigNumber.from(coins[2])])
+	let coins = ["456749846006512464301838", "778033904303774201784467", "200709219245000000000000"]
+	i = await contract.get_I([ethers.BigNumber.from(coins[0]), ethers.BigNumber.from(coins[1]), ethers.BigNumber.from(coins[2])])
+	d = await contract.get_D([ethers.BigNumber.from(coins[0]), ethers.BigNumber.from(coins[1]), ethers.BigNumber.from(coins[2])])
 	
-	console.log("result GET_i:" + result)
+	console.log("result GET_i:" + i)
+	console.log("result GET_d:" + d)
+	coins = ["1304085406509187237878713", "1682895262442761141953712", "1074915999621000000000000"]
+	i = await contract.get_I([ethers.BigNumber.from(coins[0]), ethers.BigNumber.from(coins[1]), ethers.BigNumber.from(coins[2])])
+	d = await contract.get_D([ethers.BigNumber.from(coins[0]), ethers.BigNumber.from(coins[1]), ethers.BigNumber.from(coins[2])])
+	
+	console.log("result GET_i:" + i)
+	console.log("result GET_d:" + d)
 }
 func()
