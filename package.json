@@ -14,5 +14,8 @@
   "license": "MIT",
   "dependencies": {
     "ethers": "^5.0.25"
+  },
+  "devDependencies": {
+    "hardhat": "^2.0.8"
   }
 }

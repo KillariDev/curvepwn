@@ -15,6 +15,38 @@ amp = 2000
 ADMIN_ACTIONS_DELAY = 3 * 86400
 MIN_RAMP_TIME = 86400
 
+def get_correct_D(xp, amp):
+    '''
+    xp = Balances in underlying tokens with increased precision = TokensPrecision unit
+    '''
+    S = 0
+
+    for _x in xp:
+        S += _x
+    if S == 0:
+        return 0
+
+    Dprev = 0
+    D = S
+    Ann = amp * N_COINS
+    for _i in range(255):
+        D_P = D
+        for _x in xp:
+            D_P = D_P * D / (_x * N_COINS + 1)  # +1 is to prevent /0
+        Dprev = D
+        D = (Ann * S + D_P * N_COINS) * D / ((Ann - 1) * D + (N_COINS + 1) * D_P)
+        # Equality with the precision of 1
+        if D > Dprev:
+            if D - Dprev <= 0.000001:
+                return D
+        else:
+            if Dprev - D <= 0.00001:
+                return D
+    # convergence typically occurs in 4 rounds or less, this should be unreachable!
+    # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
+    return D
+
+
 def get_D(xp, amp):
     '''
     xp = Balances in underlying tokens with increased precision = TokensPrecision unit
@@ -45,6 +77,7 @@ def get_D(xp, amp):
     # convergence typically occurs in 4 rounds or less, this should be unreachable!
     # if it does happen the pool is borked and LPs can withdraw via `remove_liquidity`
     return D
+ 
 def get_I(xp, amp):
     S = 0
 
@@ -268,8 +301,8 @@ def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee,
     balances = balances_c_tokens.copy()
     old_balances= balances_c_tokens.copy()
     if token_supply > 0:
-        D0 = get_D_mem(rates, old_balances, amp)
-    new_balances = old_balances
+        D0 = get_D_mem(rates.copy(), old_balances.copy(), amp)
+    new_balances = old_balances.copy()
 
     for i in range(N_COINS):
         if token_supply == 0:
@@ -279,7 +312,7 @@ def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee,
         new_balances[i] = old_balances[i] + amounts[i]
 
     # Invariant after change
-    D1 = get_D_mem(rates, new_balances, amp)
+    D1 = get_D_mem(rates.copy(), new_balances.copy(), amp)
     if(D1 <= D0):
         raise Exception("assert D1 > D0")
 
@@ -298,9 +331,9 @@ def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee,
             fees[i] = _fee * difference // FEE_DENOMINATOR
             balances[i] = new_balances[i] - fees[i] * _admin_fee // FEE_DENOMINATOR
             new_balances[i] -= fees[i]
-        D2 = get_D_mem(rates, new_balances, amp)
+        D2 = get_D_mem(rates.copy(), new_balances.copy(), amp)
     else:
-        balances = new_balances
+        balances = new_balances.copy()
 
     # Calculate, how much pool tokens to mint
     mint_amount = 0
@@ -311,3 +344,62 @@ def add_liquidity(amounts, totalSupply, balances_c_tokens,fee, rates, admin_fee,
 
     # Mint pool tokens
     return(amounts,fees,D1,token_supply + mint_amount,mint_amount,balances)
+    
+def remove_liquidity_imbalance(amounts, token_supply, fee, admin_fee, rates, balances):
+    assert token_supply > 0
+    _fee = fee * N_COINS // (4 * (N_COINS - 1))
+    _admin_fee = admin_fee
+
+    old_balances = balances.copy()
+    new_balances = old_balances.copy()
+    D0 = get_D_mem(rates, old_balances, amp)
+    for i in range(N_COINS):
+        new_balances[i] -= amounts[i]
+    D1 = get_D_mem(rates, new_balances, amp)
+    for i in range(N_COINS):
+        ideal_balance= D1 * old_balances[i] // D0
+        difference = 0
+        if ideal_balance > new_balances[i]:
+            difference = ideal_balance - new_balances[i]
+        else:
+            difference = new_balances[i] - ideal_balance
+        fees = _fee * difference // FEE_DENOMINATOR
+        balances[i] = new_balances[i] - fees * _admin_fee // FEE_DENOMINATOR
+        new_balances[i] -= fees
+    D2 = get_D_mem(rates, new_balances, amp)
+
+    token_amount = (D0 - D2) * token_supply // D0
+    assert token_amount > 0
+    return(token_amount,balances)
+
+def USDTpool(xp, amp, D):
+    '''
+    Return f(D), takes xp in TokenPrecision units
+    '''
+    #amp is already A*n**(n-1)
+    Ann = amp*N_COINS
+    S = 0
+    for _x in xp:
+        S += _x
+    if S == 0:
+        return 0
+    P = 1 #product of xi
+    for _x in xp:
+        P*= _x
+    return Ann*S + (1-Ann)*D - (D**(N_COINS+1))/((N_COINS**N_COINS)*P)
+    
+rates = [ 210699862363827219553716955 ,  215918944268682000000000000 ,  1000000000000000000000000000000 ]
+def CTokensToTokensIncreasedPrecision(amount, index):
+    return rates[index] * amount// PRECISION
+    
+def isInvalidD(ctokens, amp):
+    attack_balances_tokens_precision = [CTokensToTokensIncreasedPrecision(ctokens[0], 0), CTokensToTokensIncreasedPrecision(ctokens[1], 1), CTokensToTokensIncreasedPrecision(ctokens[2], 2)]
+    D = get_D(attack_balances_tokens_precision, amp)
+    u = USDTpool(attack_balances_tokens_precision, amp, D)
+    if abs(u) > 0:
+        return True
+    return False
+    
+    
+def get_virtual_price(balances,rates,token_supply,amp):
+    return get_D(_xp(balances,rates),amp) * PRECISION // token_supply
